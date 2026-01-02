@@ -14,7 +14,11 @@ export function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
-    api.get("/transacoes").then((res) => setTransactions(res.data));
+    api.get("/transacoes").then((res) => {
+      // Filtrar apenas transações com banco definido
+      const transacoesComBanco = res.data.filter((t: any) => t.banco);
+      setTransactions(transacoesComBanco);
+    });
   }, [open]); // Recarrega quando o modal fechar
 
   return (

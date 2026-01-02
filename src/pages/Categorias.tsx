@@ -23,7 +23,11 @@ export function Categorias() {
   const [tipo, setTipo] = useState<"entrada" | "saida">("saida");
 
   useEffect(() => {
-    api.get("/transacoes").then((res) => setTransactions(res.data));
+    api.get("/transacoes").then((res) => {
+      // Filtrar apenas transações com banco definido
+      const transacoesComBanco = res.data.filter((t: any) => t.banco);
+      setTransactions(transacoesComBanco);
+    });
   }, []);
 
   const categoryData = useMemo(() => {
