@@ -1,7 +1,11 @@
+import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { useState } from "react";
 import { Header } from "./components/Header";
 import { Summary } from "./components/Summary";
 import { TransactionsTable } from "./components/TransactionsTable";
+import { SummaryChart } from "./components/SummaryChart";
 import type { Transaction } from "./types/Transaction";
 import { NewTransactionModal } from "./components/NewTransactionModal";
 
@@ -67,12 +71,15 @@ function App() {
       createdAt: new Date().toISOString(),
     };
     setTransactions([newTransaction, ...transactions]);
+    toast.success("Transação cadastrada com sucesso!");
   }
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16">
+      <ToastContainer position="top-right" autoClose={3000} />
       <Header onOpenNewTransaction={() => setIsModalOpen(true)} />
       <Summary income={income} outcome={outcome} />
+      <SummaryChart income={income} outcome={outcome} />
       <TransactionsTable transactions={transactions} />
       <NewTransactionModal
         open={isModalOpen}

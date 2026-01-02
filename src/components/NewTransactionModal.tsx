@@ -37,27 +37,28 @@ export function NewTransactionModal({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40" />
-        <Dialog.Content className="fixed z-50 bg-gray-800 rounded-lg p-8 w-full max-w-md top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-lg">
-          <Dialog.Title className="text-lg font-bold text-white mb-4">
+        <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 animate-fadeIn" />
+        <Dialog.Content className="fixed z-50 bg-gray-800 border-2 border-green rounded-2xl p-8 w-full max-w-md top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-2xl animate-slideUp">
+          <Dialog.Title className="text-2xl font-extrabold text-green mb-6 text-center drop-shadow">
             Nova Transação
           </Dialog.Title>
           <button
             onClick={() => onOpenChange(false)}
-            className="absolute right-4 top-4 text-gray-300 hover:text-white"
+            className="absolute right-4 top-4 text-gray-300 hover:text-green focus:outline-none focus:ring-2 focus:ring-green"
+            aria-label="Fechar"
           >
-            <X />
+            <X size={24} />
           </button>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
             <input
-              className="bg-gray-600 rounded px-4 py-2 text-white placeholder-gray-300"
+              className="bg-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-green"
               placeholder="Título"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
             />
             <input
-              className="bg-gray-600 rounded px-4 py-2 text-white placeholder-gray-300"
+              className="bg-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-green"
               placeholder="Valor"
               type="number"
               value={amount}
@@ -69,29 +70,29 @@ export function NewTransactionModal({
             <div className="flex gap-2">
               <button
                 type="button"
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded ${
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold shadow ${
                   type === "income"
-                    ? "bg-green text-white"
-                    : "bg-gray-600 text-gray-200"
-                } transition-colors`}
+                    ? "bg-green text-white border-2 border-green-dark scale-105"
+                    : "bg-gray-600 text-gray-200 border border-gray-400"
+                } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green`}
                 onClick={() => setType("income")}
               >
-                <ArrowUpCircle /> Entrada
+                <ArrowUpCircle size={22} /> Entrada
               </button>
               <button
                 type="button"
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded ${
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold shadow ${
                   type === "outcome"
-                    ? "bg-red text-white"
-                    : "bg-gray-600 text-gray-200"
-                } transition-colors`}
+                    ? "bg-red text-white border-2 border-red scale-105"
+                    : "bg-gray-600 text-gray-200 border border-gray-400"
+                } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red`}
                 onClick={() => setType("outcome")}
               >
-                <ArrowDownCircle /> Saída
+                <ArrowDownCircle size={22} /> Saída
               </button>
             </div>
             <input
-              className="bg-gray-600 rounded px-4 py-2 text-white placeholder-gray-300"
+              className="bg-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-green"
               placeholder="Categoria"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -99,7 +100,7 @@ export function NewTransactionModal({
             />
             <button
               type="submit"
-              className="bg-green text-white px-4 py-2 rounded font-bold hover:bg-green-dark transition-colors mt-2"
+              className="bg-green text-white px-6 py-3 rounded-lg font-bold shadow hover:bg-green-dark hover:scale-105 transition-all duration-200 mt-2 focus:outline-none focus:ring-2 focus:ring-green-dark"
             >
               Cadastrar
             </button>
