@@ -48,17 +48,17 @@ export function Categorias() {
   const total = categoryData.reduce((sum, item) => sum + item.value, 0);
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex flex-col md:flex-row pb-20 md:pb-0">
       <Sidebar />
-      <main className="flex-1 px-2 md:px-8 py-8 max-w-6xl mx-auto md:ml-20">
-        <h1 className="text-3xl font-bold text-text-dark mb-8">
+      <main className="flex-1 px-4 md:px-8 py-4 md:py-8 max-w-6xl mx-auto w-full md:ml-20">
+        <h1 className="text-2xl md:text-3xl font-bold text-text-dark mb-6 md:mb-8">
           Gastos por Categoria
         </h1>
 
         {/* Filtro Entrada/Saída */}
-        <div className="flex gap-2 mb-8">
+        <div className="flex gap-2 mb-6 md:mb-8">
           <button
-            className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
+            className={`flex-1 md:flex-none px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all duration-200 ${
               tipo === "saida"
                 ? "bg-danger text-white shadow-md"
                 : "bg-white text-text-dark hover:bg-danger/10 border border-gray-200"
@@ -68,7 +68,7 @@ export function Categorias() {
             Despesas
           </button>
           <button
-            className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
+            className={`flex-1 md:flex-none px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold text-sm md:text-base transition-all duration-200 ${
               tipo === "entrada"
                 ? "bg-primary text-white shadow-md"
                 : "bg-white text-text-dark hover:bg-primary/10 border border-gray-200"
@@ -79,14 +79,14 @@ export function Categorias() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:gap-6">
           {/* Gráfico de Pizza */}
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="text-lg font-bold mb-4 text-text-dark">
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-md">
+            <h3 className="text-base md:text-lg font-bold mb-4 text-text-dark">
               Distribuição por Categoria
             </h3>
             {categoryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie
                     data={categoryData}
@@ -122,8 +122,8 @@ export function Categorias() {
           </div>
 
           {/* Lista de Categorias */}
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <h3 className="text-lg font-bold mb-4 text-text-dark">
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-md">
+            <h3 className="text-base md:text-lg font-bold mb-4 text-text-dark">
               Detalhamento
             </h3>
             <div className="space-y-3">

@@ -115,13 +115,15 @@ export function BankAnalytics({ transactions, bankName }: BankAnalyticsProps) {
   }, [transactions]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Cards de Resumo */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-6 shadow-md">
-          <h3 className="text-sm text-text-light mb-2">Saldo Atual</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-md">
+          <h3 className="text-xs md:text-xs md:text-sm text-text-light mb-2">
+            Saldo Atual
+          </h3>
           <p
-            className={`text-3xl font-bold ${
+            className={`text-2xl md:text-3xl font-bold ${
               analytics.currentBalance >= 0 ? "text-green" : "text-red"
             }`}
           >

@@ -65,8 +65,8 @@ export function TransactionFormModal({
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40" />
-        <Dialog.Content className="fixed z-50 bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-2xl p-8 w-full max-w-md top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-2xl border border-gray-200">
-          <Dialog.Title className="text-xl font-bold text-text-dark mb-6 text-center">
+        <Dialog.Content className="fixed z-50 bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-2xl p-6 md:p-8 w-[95%] md:w-full max-w-md top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
+          <Dialog.Title className="text-lg md:text-xl font-bold text-text-dark mb-4 md:mb-6 text-center">
             Nova Transação
           </Dialog.Title>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
