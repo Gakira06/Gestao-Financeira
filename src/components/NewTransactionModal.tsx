@@ -51,14 +51,14 @@ export function NewTransactionModal({
           </button>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
             <input
-              className="bg-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-green"
+              className="bg-gray-100 border border-gray-300 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green focus:bg-white transition-all"
               placeholder="Título"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               required
             />
             <input
-              className="bg-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-green"
+              className="bg-gray-100 border border-gray-300 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green focus:bg-white transition-all"
               placeholder="Valor"
               type="number"
               value={amount}
@@ -70,29 +70,29 @@ export function NewTransactionModal({
             <div className="flex gap-2">
               <button
                 type="button"
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold shadow ${
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold shadow-sm border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green/60 ${
                   type === "income"
-                    ? "bg-green text-white border-2 border-green-dark scale-105"
-                    : "bg-gray-600 text-gray-200 border border-gray-400"
-                } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green`}
+                    ? "bg-green text-white border-green scale-105 shadow-md"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
                 onClick={() => setType("income")}
               >
                 <ArrowUpCircle size={22} /> Entrada
               </button>
               <button
                 type="button"
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-semibold shadow ${
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-semibold shadow-sm border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red/60 ${
                   type === "outcome"
-                    ? "bg-red text-white border-2 border-red scale-105"
-                    : "bg-gray-600 text-gray-200 border border-gray-400"
-                } transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red`}
+                    ? "bg-red text-white border-red scale-105 shadow-md"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
                 onClick={() => setType("outcome")}
               >
                 <ArrowDownCircle size={22} /> Saída
               </button>
             </div>
             <input
-              className="bg-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-green"
+              className="bg-gray-100 border border-gray-300 rounded-xl px-4 py-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green focus:bg-white transition-all"
               placeholder="Categoria"
               value={category}
               onChange={(e) => setCategory(e.target.value)}
@@ -100,7 +100,7 @@ export function NewTransactionModal({
             />
             <button
               type="submit"
-              className="bg-green text-white px-6 py-3 rounded-lg font-bold shadow hover:bg-green-dark hover:scale-105 transition-all duration-200 mt-2 focus:outline-none focus:ring-2 focus:ring-green-dark"
+              className="bg-green text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-green-dark hover:scale-105 transition-all duration-200 mt-2 focus:outline-none focus:ring-2 focus:ring-green-dark"
             >
               Cadastrar
             </button>

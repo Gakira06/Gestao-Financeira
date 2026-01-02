@@ -25,15 +25,36 @@ export function SummaryChart({ income, outcome }: SummaryChartProps) {
   ];
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-8 bg-white rounded shadow p-4">
-      <h2 className="text-lg font-bold mb-4 text-gray-800">Resumo Gráfico</h2>
-      <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={data}>
-          <XAxis dataKey="name" stroke="#363F5F" />
-          <YAxis stroke="#363F5F" />
-          <Tooltip />
-          <Legend />
-          <Bar dataKey="value" isAnimationActive fill="#33CC95">
+    <div className="w-full max-w-4xl mx-auto mt-10 bg-white rounded-2xl shadow-md p-8 border border-gray-200">
+      <h2 className="text-2xl font-extrabold mb-6 text-gray-800">
+        Resumo Gráfico
+      </h2>
+      <ResponsiveContainer width="100%" height={260}>
+        <BarChart data={data} barSize={48} style={{ fontFamily: "inherit" }}>
+          <XAxis
+            dataKey="name"
+            stroke="#363F5F"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 16, fill: "#363F5F" }}
+          />
+          <YAxis
+            stroke="#363F5F"
+            axisLine={false}
+            tickLine={false}
+            tick={{ fontSize: 15, fill: "#363F5F" }}
+          />
+          <Tooltip
+            wrapperClassName="!rounded-lg !shadow-lg !border !border-gray-200 !bg-white !text-gray-800"
+            contentStyle={{ borderRadius: 12, fontSize: 15 }}
+          />
+          <Legend iconType="circle" wrapperStyle={{ fontSize: 15 }} />
+          <Bar
+            dataKey="value"
+            isAnimationActive
+            fill="#33CC95"
+            radius={[8, 8, 0, 0]}
+          >
             {data.map((entry, index) => (
               <cell key={`cell-${index}`} fill={entry.fill} />
             ))}

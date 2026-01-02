@@ -5,4 +5,5 @@ export interface Transaction {
   type: "income" | "outcome";
   category: string;
   createdAt: string;
+  bank: string;
 }

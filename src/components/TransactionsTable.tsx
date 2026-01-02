@@ -8,30 +8,37 @@ interface TransactionsTableProps {
 export function TransactionsTable({ transactions }: TransactionsTableProps) {
   return (
     <div className="w-full max-w-4xl mx-auto mt-8 overflow-x-auto">
-      <table className="min-w-full bg-gray-800 rounded-xl text-gray-100 shadow-lg border border-gray-300">
+      <table className="min-w-full bg-white rounded-2xl text-gray-700 shadow-md border border-gray-200">
         <thead>
-          <tr className="bg-gray-600">
-            <th className="px-6 py-3 text-left font-bold text-lg text-white">
+          <tr className="bg-gray-100">
+            <th className="px-6 py-4 text-left font-bold text-base uppercase tracking-wide">
               Título
             </th>
-            <th className="px-6 py-3 text-left font-bold text-lg text-white">
+            <th className="px-6 py-4 text-left font-bold text-base uppercase tracking-wide">
               Valor
             </th>
-            <th className="px-6 py-3 text-left font-bold text-lg text-white">
+            <th className="px-6 py-4 text-left font-bold text-base uppercase tracking-wide">
               Categoria
             </th>
-            <th className="px-6 py-3 text-left font-bold text-lg text-white">
+            <th className="px-6 py-4 text-left font-bold text-base uppercase tracking-wide">
+              Banco
+            </th>
+            <th className="px-6 py-4 text-left font-bold text-base uppercase tracking-wide">
               Data
             </th>
           </tr>
         </thead>
         <tbody>
-          {transactions.map((transaction) => (
+          {transactions.map((transaction, idx) => (
             <tr
               key={transaction.id}
-              className="border-t border-gray-600 hover:bg-gray-700 transition-colors duration-150"
+              className={`border-t border-gray-100 hover:bg-gray-50 transition-colors duration-150 ${
+                idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+              }`}
             >
-              <td className="px-6 py-4 text-base">{transaction.title}</td>
+              <td className="px-6 py-4 text-base font-medium">
+                {transaction.title}
+              </td>
               <td
                 className={`px-6 py-4 font-semibold text-lg ${
                   transaction.type === "income" ? "text-green" : "text-red"
@@ -41,6 +48,11 @@ export function TransactionsTable({ transactions }: TransactionsTableProps) {
                 {formatCurrencyBRL(transaction.amount)}
               </td>
               <td className="px-6 py-4 text-base">{transaction.category}</td>
+              <td className="px-6 py-4 text-base">
+                <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold">
+                  {transaction.bank}
+                </span>
+              </td>
               <td className="px-6 py-4 text-base">
                 {new Date(transaction.createdAt).toLocaleDateString("pt-BR")}
               </td>
