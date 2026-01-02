@@ -20,19 +20,19 @@ const COLORS = [
 
 export function Categorias() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [tipo, setTipo] = useState<"income" | "outcome">("outcome");
+  const [tipo, setTipo] = useState<"entrada" | "saida">("saida");
 
   useEffect(() => {
     api.get("/transacoes").then((res) => setTransactions(res.data));
   }, []);
 
   const categoryData = useMemo(() => {
-    const filtered = transactions.filter((t) => t.type === tipo);
+    const filtered = transactions.filter((t) => t.tipo === tipo);
     const grouped = filtered.reduce((acc, t) => {
-      if (!acc[t.category]) {
-        acc[t.category] = 0;
+      if (!acc[t.categoria]) {
+        acc[t.categoria] = 0;
       }
-      acc[t.category] += t.amount;
+      acc[t.categoria] += t.valor;
       return acc;
     }, {} as Record<string, number>);
 
@@ -55,21 +55,21 @@ export function Categorias() {
         <div className="flex gap-2 mb-8">
           <button
             className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
-              tipo === "outcome"
+              tipo === "saida"
                 ? "bg-danger text-white shadow-md"
                 : "bg-white text-text-dark hover:bg-danger/10 border border-gray-200"
             }`}
-            onClick={() => setTipo("outcome")}
+            onClick={() => setTipo("saida")}
           >
             Despesas
           </button>
           <button
             className={`px-6 py-3 rounded-xl font-semibold transition-all duration-200 ${
-              tipo === "income"
+              tipo === "entrada"
                 ? "bg-primary text-white shadow-md"
                 : "bg-white text-text-dark hover:bg-primary/10 border border-gray-200"
             }`}
-            onClick={() => setTipo("income")}
+            onClick={() => setTipo("entrada")}
           >
             Receitas
           </button>

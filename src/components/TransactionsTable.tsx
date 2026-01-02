@@ -37,24 +37,24 @@ export function TransactionsTable({ transactions }: TransactionsTableProps) {
               }`}
             >
               <td className="px-6 py-4 text-base font-medium">
-                {transaction.title}
+                {transaction.titulo}
               </td>
               <td
                 className={`px-6 py-4 font-semibold text-lg ${
-                  transaction.type === "income" ? "text-green" : "text-red"
+                  transaction.tipo === "entrada" ? "text-green" : "text-red"
                 }`}
               >
-                {transaction.type === "outcome" && "- "}
-                {formatCurrencyBRL(transaction.amount)}
+                {transaction.tipo === "saida" && "- "}
+                {formatCurrencyBRL(transaction.valor)}
               </td>
-              <td className="px-6 py-4 text-base">{transaction.category}</td>
+              <td className="px-6 py-4 text-base">{transaction.categoria}</td>
               <td className="px-6 py-4 text-base">
                 <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-semibold">
-                  {transaction.bank}
+                  {transaction.banco}
                 </span>
               </td>
               <td className="px-6 py-4 text-base">
-                {new Date(transaction.createdAt).toLocaleDateString("pt-BR")}
+                {new Date(transaction.data).toLocaleDateString("pt-BR")}
               </td>
             </tr>
           ))}

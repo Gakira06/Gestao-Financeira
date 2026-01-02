@@ -1,9 +1,9 @@
 export interface Transaction {
   id: number;
-  title: string;
-  amount: number;
-  type: "income" | "outcome";
-  category: string;
-  createdAt: string;
-  bank: string;
+  titulo: string;
+  valor: number;
+  tipo: "entrada" | "saida";
+  categoria: string;
+  data: string;
+  banco: string;
 }

@@ -28,7 +28,7 @@ export function Dashboard() {
             const filteredTransactions =
               selectedBank === "all"
                 ? transactions
-                : transactions.filter((t) => t.bank === selectedBank);
+                : transactions.filter((t) => t.banco === selectedBank);
 
             const bankName =
               BANKS.find((b) => b.value === selectedBank)?.label || "Todos";

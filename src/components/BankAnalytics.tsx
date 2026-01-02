@@ -22,7 +22,7 @@ export function BankAnalytics({ transactions, bankName }: BankAnalyticsProps) {
   const analytics = useMemo(() => {
     // Agrupa transações por mês
     const monthlyData = transactions.reduce((acc, transaction) => {
-      const date = new Date(transaction.createdAt);
+      const date = new Date(transaction.data);
       const monthKey = `${date.getFullYear()}-${String(
         date.getMonth() + 1
       ).padStart(2, "0")}`;
@@ -36,10 +36,10 @@ export function BankAnalytics({ transactions, bankName }: BankAnalyticsProps) {
         };
       }
 
-      if (transaction.type === "income") {
-        acc[monthKey].income += transaction.amount;
+      if (transaction.tipo === "entrada") {
+        acc[monthKey].income += transaction.valor;
       } else {
-        acc[monthKey].outcome += transaction.amount;
+        acc[monthKey].outcome += transaction.valor;
       }
 
       return acc;
