@@ -64,8 +64,8 @@ export function TransactionFormModal({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Dialog.Content className="fixed z-50 bg-card rounded-2xl p-8 w-full max-w-md top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-xl">
+        <Dialog.Overlay className="fixed inset-0 bg-black/60 z-40" />
+        <Dialog.Content className="fixed z-50 bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-2xl p-8 w-full max-w-md top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-2xl border border-gray-200">
           <Dialog.Title className="text-xl font-bold text-text-dark mb-6 text-center">
             Nova Transação
           </Dialog.Title>
@@ -129,19 +129,19 @@ export function TransactionFormModal({
                   {cat}
                 </option>
               ))}
-              <select
-                className="bg-background rounded-xl px-4 py-3 text-text-dark focus:outline-none focus:ring-2 focus:ring-primary"
-                value={banco}
-                onChange={(e) => setBanco(e.target.value)}
-                required
-              >
-                <option value="">Selecione o banco</option>
-                {bancos.map((b) => (
-                  <option key={b.value} value={b.value}>
-                    {b.label}
-                  </option>
-                ))}
-              </select>
+            </select>
+            <select
+              className="bg-background rounded-xl px-4 py-3 text-text-dark focus:outline-none focus:ring-2 focus:ring-primary"
+              value={banco}
+              onChange={(e) => setBanco(e.target.value)}
+              required
+            >
+              <option value="">Selecione o banco</option>
+              {bancos.map((b) => (
+                <option key={b.value} value={b.value}>
+                  {b.label}
+                </option>
+              ))}
             </select>
             <button
               type="submit"
