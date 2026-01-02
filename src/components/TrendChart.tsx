@@ -29,7 +29,10 @@ export function TrendChart({ className }: TrendChartProps) {
         return acc;
       }, {});
       setData(
-        Object.entries(grouped).map(([data, saldo]) => ({ data, saldo }))
+        Object.entries(grouped).map(([data, saldo]) => ({
+          data,
+          saldo: saldo as number,
+        }))
       );
     });
   }, []);
@@ -62,11 +65,13 @@ export function TrendChart({ className }: TrendChartProps) {
             <YAxis stroke="#6b7280" fontSize={13} />
             <CartesianGrid strokeDasharray="3 3" />
             <Tooltip
-              formatter={(v: number) =>
-                v.toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL",
-                })
+              formatter={(v: number | undefined) =>
+                v
+                  ? v.toLocaleString("pt-BR", {
+                      style: "currency",
+                      currency: "BRL",
+                    })
+                  : "R$ 0,00"
               }
             />
             <Area

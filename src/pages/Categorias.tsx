@@ -3,14 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { api } from "../services/api";
 import type { Transaction } from "../types/Transaction";
 import { formatCurrencyBRL } from "../utils/formatCurrencyBRL";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Legend,
-  Tooltip,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 const COLORS = [
   "#14b8a6",
@@ -97,13 +90,13 @@ export function Categorias() {
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) =>
-                      `${name} (${(percent * 100).toFixed(0)}%)`
+                      `${name} (${percent ? (percent * 100).toFixed(0) : 0}%)`
                     }
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {categoryData.map((entry, index) => (
+                    {categoryData.map((_, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={COLORS[index % COLORS.length]}
@@ -111,7 +104,9 @@ export function Categorias() {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => formatCurrencyBRL(value)}
+                    formatter={(value: number | undefined) =>
+                      value ? formatCurrencyBRL(value) : "R$ 0,00"
+                    }
                   />
                 </PieChart>
               </ResponsiveContainer>

@@ -1,6 +1,5 @@
 import { Sidebar } from "../components/Sidebar";
 import { SummaryCard } from "../components/SummaryCard";
-import { TrendChart } from "../components/TrendChart";
 import { TransactionList } from "../components/TransactionList";
 import { FabButton } from "../components/FabButton";
 import { TransactionFormModal } from "../components/TransactionFormModal";
