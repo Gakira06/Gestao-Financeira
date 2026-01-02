@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
-import { Tag, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Tag } from "lucide-react";
 
 interface Transaction {
   id: number;

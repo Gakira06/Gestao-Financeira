@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   Tooltip,

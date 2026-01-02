@@ -56,7 +56,7 @@ export function SummaryChart({ income, outcome }: SummaryChartProps) {
             radius={[8, 8, 0, 0]}
           >
             {data.map((entry, index) => (
-              <cell key={`cell-${index}`} fill={entry.fill} />
+              <Cell key={`cell-${index}`} fill={entry.fill} />
             ))}
           </Bar>
         </BarChart>

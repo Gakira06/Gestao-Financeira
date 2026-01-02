@@ -1,4 +1,4 @@
-import { Home, BarChart2, Tag, Settings, List } from "lucide-react";
+import { Home, BarChart2, Tag, List } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 const menu = [
@@ -12,7 +12,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex flex-col h-screen w-20 bg-white border-r border-gray-200 shadow-lg py-8 px-2 fixed left-0 top-0 z-30">
       <div className="flex flex-col gap-8 items-center">
-        {menu.map((item, i) => (
+        {menu.map((item) => (
           <NavLink
             key={item.label}
             to={item.to}

@@ -192,7 +192,9 @@ export function BankAnalytics({ transactions, bankName }: BankAnalyticsProps) {
               tickFormatter={(value) => formatCurrencyBRL(value)}
             />
             <Tooltip
-              formatter={(value: number) => formatCurrencyBRL(value)}
+              formatter={(value: number | undefined) =>
+                value ? formatCurrencyBRL(value) : "R$ 0,00"
+              }
               labelFormatter={(label) => {
                 const [year, month] = label.split("-");
                 return `${month}/${year}`;
@@ -235,7 +237,9 @@ export function BankAnalytics({ transactions, bankName }: BankAnalyticsProps) {
               tickFormatter={(value) => formatCurrencyBRL(value)}
             />
             <Tooltip
-              formatter={(value: number) => formatCurrencyBRL(value)}
+              formatter={(value: number | undefined) =>
+                value ? formatCurrencyBRL(value) : "R$ 0,00"
+              }
               labelFormatter={(label) => {
                 const [year, month] = label.split("-");
                 return `${month}/${year}`;
