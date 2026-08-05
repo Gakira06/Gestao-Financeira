@@ -1,4 +1,4 @@
-import { Sidebar } from "../components/Sidebar";
+import Sidebar from "../components/Sidebar";
 import { BankTabs, BANKS } from "../components/BankTabs";
 import { BankAnalytics } from "../components/BankAnalytics";
 import { useState, useEffect } from "react";

@@ -1,4 +1,4 @@
-import { Sidebar } from "../components/Sidebar";
+import Sidebar from "../components/Sidebar";
 import { useState, useEffect, useMemo } from "react";
 import { api } from "../services/api";
 import type { Transaction } from "../types/Transaction";
@@ -32,13 +32,16 @@ export function Categorias() {
 
   const categoryData = useMemo(() => {
     const filtered = transactions.filter((t) => t.tipo === tipo);
-    const grouped = filtered.reduce((acc, t) => {
-      if (!acc[t.categoria]) {
-        acc[t.categoria] = 0;
-      }
-      acc[t.categoria] += t.valor;
-      return acc;
-    }, {} as Record<string, number>);
+    const grouped = filtered.reduce(
+      (acc, t) => {
+        if (!acc[t.categoria]) {
+          acc[t.categoria] = 0;
+        }
+        acc[t.categoria] += t.valor;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return Object.entries(grouped)
       .map(([name, value]) => ({ name, value }))

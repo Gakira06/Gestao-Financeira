@@ -1,4 +1,4 @@
-import { Sidebar } from "../components/Sidebar";
+import Sidebar from "../components/Sidebar";
 import { SummaryCard } from "../components/SummaryCard";
 import { TransactionList } from "../components/TransactionList";
 import { FabButton } from "../components/FabButton";
