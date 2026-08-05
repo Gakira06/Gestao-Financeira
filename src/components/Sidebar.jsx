@@ -26,11 +26,11 @@ export default function Sidebar({ activePage, onChange }) {
           <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-indigo-600 text-white shadow-xl shadow-indigo-600/20">
             <BarChart3 size={24} />
           </div>
-          <h1 className="mt-5 text-2xl font-semibold text-zinc-950 dark:text-white">
+          <h1 className="mt-5 text-2xl font-semibold text-slate-950 dark:text-white">
             Meu Organizador
           </h1>
-          <p className="mt-2 max-w-xs text-sm text-zinc-500 dark:text-zinc-400">
-            Rotina, tarefas e finanças em um lugar só.
+          <p className="mt-2 max-w-xs text-sm text-slate-500 dark:text-slate-400">
+            Rotina, tarefas e finanças em um só lugar.
           </p>
         </div>
 
@@ -48,7 +48,7 @@ export default function Sidebar({ activePage, onChange }) {
                 className={`flex w-full items-center gap-3 rounded-3xl px-4 py-3 text-left text-sm font-semibold transition ${
                   isActive
                     ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                    : "text-zinc-700 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                    : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
               >
                 <Icon size={18} />
@@ -63,7 +63,7 @@ export default function Sidebar({ activePage, onChange }) {
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex w-full items-center justify-between rounded-3xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-semibold text-zinc-700 shadow-sm transition hover:bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+            className="flex w-full items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <span>{theme === "dark" ? "Modo Escuro" : "Modo Claro"}</span>
             {theme === "dark" ? <Moon size={18} /> : <Sun size={18} />}

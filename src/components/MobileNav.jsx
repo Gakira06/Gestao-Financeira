@@ -10,7 +10,7 @@ const items = [
 
 export default function MobileNav({ activePage, onChange }) {
   return (
-    <nav className="print:hidden fixed inset-x-3 bottom-3 z-40 grid grid-cols-4 gap-2 rounded-3xl border border-zinc-200 bg-white/95 p-2 shadow-xl backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/95 lg:hidden">
+    <nav className="print:hidden fixed inset-x-3 bottom-3 z-50 grid grid-cols-4 gap-2 rounded-[1.5rem] border border-slate-200 bg-white/95 p-2 shadow-2xl backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
       {items.map((item) => {
         const Icon = item.icon;
         const active = activePage === item.id;

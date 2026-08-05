@@ -8,6 +8,7 @@ export default function PageShell({ children, title, subtitle, actions }) {
       exit={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.24, ease: "easeOut" }}
       className="min-h-screen px-4 pb-28 pt-6 sm:px-6 lg:px-10 lg:pb-10"
+      style={{ maxWidth: 1180, margin: "0 auto" }}
     >
       <header className="print:hidden mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
