@@ -8,7 +8,7 @@ const menu = [
   { icon: <Tag size={24} />, label: "Categorias", to: "/categorias" },
 ];
 
-export function Sidebar() {
+export default function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}

@@ -48,7 +48,7 @@ body {
     linear-gradient(180deg, #eff6ff 0%, #f8fafc 40%, #ffffff 100%);
 }
 
-body.dark {
+html.dark {
   background: #020617;
 }
 
