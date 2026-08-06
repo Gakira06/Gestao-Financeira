@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { toast } from "react-toastify";
 import Modal from "../components/Modal";
 import PageShell from "../components/PageShell";
 import StatCard from "../components/StatCard";
@@ -79,6 +80,7 @@ export default function Produtividade() {
       setTasks((current) => [{ ...payload, id: Date.now() }, ...current]);
     }
 
+    toast.success("Tarefa criada!");
     setTaskModal(false);
     setTaskForm({
       title: "",
@@ -109,6 +111,7 @@ export default function Produtividade() {
     }
 
     setTasks((current) => current.filter((item) => item.id !== task.id));
+    toast.info("Tarefa removida.");
   }
 
   async function createEvent(event) {
@@ -121,6 +124,7 @@ export default function Produtividade() {
       setEvents((current) => [{ ...eventForm, id: Date.now() }, ...current]);
     }
 
+    toast.success("Evento criado!");
     setEventModal(false);
     setEventForm({ title: "", description: "", startDate: "", endDate: "" });
   }
@@ -134,7 +138,7 @@ export default function Produtividade() {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => setEventModal(true)}
-            className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white"
+            className="inline-flex items-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-white"
           >
             <CalendarPlus size={18} />
             Evento
@@ -142,7 +146,7 @@ export default function Produtividade() {
           <motion.button
             whileTap={{ scale: 0.98 }}
             onClick={() => setTaskModal(true)}
-            className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500"
+            className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/20 transition hover:bg-terracotta-500"
           >
             <Plus size={18} />
             Tarefa
@@ -161,7 +165,7 @@ export default function Produtividade() {
           title="Em andamento"
           value={tasks.filter((task) => task.status === "Em Andamento").length}
           icon={Flag}
-          tone="indigo"
+          tone="terracotta"
         />
         <StatCard
           title="Concluídas"
@@ -176,12 +180,17 @@ export default function Produtividade() {
           {statuses.map((status) => (
             <div
               key={status}
-              className="rounded-2xl border border-zinc-200 bg-white/75 p-4 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/70"
+              className="rounded-2xl border border-stone-200 bg-white/75 p-4 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70"
             >
-              <h3 className="mb-4 text-sm font-semibold text-zinc-950 dark:text-white">
+              <h3 className="mb-4 text-sm font-semibold text-stone-950 dark:text-white">
                 {status}
               </h3>
               <div className="space-y-3">
+                {sortedTasks.filter((task) => task.status === status).length === 0 && (
+                  <p className="rounded-2xl bg-terracotta-50/60 px-3 py-5 text-center text-xs text-stone-500 dark:bg-white/5 dark:text-stone-400">
+                    Nada por aqui.
+                  </p>
+                )}
                 {sortedTasks
                   .filter((task) => task.status === status)
                   .map((task) => (
@@ -189,25 +198,25 @@ export default function Produtividade() {
                       key={task.id}
                       layout
                       whileHover={{ scale: 1.01 }}
-                      className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-950"
+                      className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="font-medium text-zinc-950 dark:text-white">
+                          <p className="font-medium text-stone-950 dark:text-white">
                             {task.title}
                           </p>
                           {task.description && (
-                            <p className="mt-1 text-xs text-zinc-500">
+                            <p className="mt-1 text-xs text-stone-500">
                               {task.description}
                             </p>
                           )}
-                          <span className="mt-2 inline-flex rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs text-indigo-500">
+                          <span className="mt-2 inline-flex rounded-full bg-terracotta-500/10 px-2.5 py-1 text-xs text-terracotta-500">
                             {task.priority}
                           </span>
                         </div>
                         <button
                           onClick={() => removeTask(task)}
-                          className="text-zinc-400 hover:text-rose-500"
+                          className="text-stone-400 hover:text-rose-500"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -231,21 +240,26 @@ export default function Produtividade() {
         </section>
 
         <div className="space-y-5">
-          <section className="rounded-2xl border border-zinc-200 bg-white/75 p-5 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/70">
-            <div className="mb-4 flex items-center gap-2 text-zinc-950 dark:text-white">
+          <section className="rounded-2xl border border-stone-200 bg-white/75 p-5 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70">
+            <div className="mb-4 flex items-center gap-2 text-stone-950 dark:text-white">
               <CalendarClock size={18} />
               <h3 className="text-sm font-semibold">Próximos compromissos</h3>
             </div>
             <div className="space-y-3">
+              {nextEvents.length === 0 && (
+                <p className="rounded-2xl bg-terracotta-50/60 px-4 py-6 text-center text-sm text-stone-500 dark:bg-white/5 dark:text-stone-400">
+                  Nenhum compromisso agendado.
+                </p>
+              )}
               {nextEvents.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-2xl bg-zinc-100 p-4 dark:bg-zinc-950"
+                  className="rounded-2xl bg-stone-100 p-4 dark:bg-stone-950"
                 >
-                  <p className="font-medium text-zinc-950 dark:text-white">
+                  <p className="font-medium text-stone-950 dark:text-white">
                     {item.title}
                   </p>
-                  <span className="mt-1 block text-xs text-zinc-500">
+                  <span className="mt-1 block text-xs text-stone-500">
                     {new Date(item.startDate).toLocaleString("pt-BR")}
                   </span>
                 </div>
@@ -253,8 +267,8 @@ export default function Produtividade() {
             </div>
           </section>
 
-          <section className="rounded-2xl border border-zinc-200 bg-white/75 p-5 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/70">
-            <div className="mb-4 flex items-center gap-2 text-zinc-950 dark:text-white">
+          <section className="rounded-2xl border border-stone-200 bg-white/75 p-5 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70">
+            <div className="mb-4 flex items-center gap-2 text-stone-950 dark:text-white">
               <Sparkles size={18} />
               <h3 className="text-sm font-semibold">Calculadora de metas</h3>
             </div>
@@ -300,12 +314,12 @@ export default function Produtividade() {
                 placeholder="Taxa mensal (%)"
               />
             </div>
-            <div className="mt-4 rounded-2xl bg-indigo-600/10 p-4 text-sm text-zinc-700 dark:text-zinc-200">
-              <div className="flex items-center gap-2 font-semibold text-indigo-600 dark:text-indigo-400">
+            <div className="mt-4 rounded-2xl bg-terracotta-600/10 p-4 text-sm text-stone-700 dark:text-stone-200">
+              <div className="flex items-center gap-2 font-semibold text-terracotta-600 dark:text-terracotta-400">
                 <Target size={16} />
                 <span>Resumo da projeção</span>
               </div>
-              <p className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-white">
+              <p className="mt-2 text-2xl font-semibold text-stone-950 dark:text-white">
                 {currency.format(forecast.finalBalance)}
               </p>
               <p className="mt-2 text-sm">
@@ -373,7 +387,7 @@ export default function Produtividade() {
               className="input-control"
             />
           </div>
-          <button className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500">
+          <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">
             Salvar tarefa
           </button>
         </form>
@@ -422,7 +436,7 @@ export default function Produtividade() {
               className="input-control"
             />
           </div>
-          <button className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500">
+          <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">
             Salvar evento
           </button>
         </form>

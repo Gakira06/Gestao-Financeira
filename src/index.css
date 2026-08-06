@@ -1,6 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-terracotta-50: #fdf5f0;
+  --color-terracotta-100: #fbe7da;
+  --color-terracotta-200: #f5cbae;
+  --color-terracotta-300: #eba97c;
+  --color-terracotta-400: #e08752;
+  --color-terracotta-500: #d16f38;
+  --color-terracotta-600: #bb5a29;
+  --color-terracotta-700: #984621;
+  --color-terracotta-800: #7a3a20;
+  --color-terracotta-900: #64311d;
+}
 
 @layer utilities {
   .scrollbar-hide {
@@ -14,6 +27,7 @@
 
 :root {
   font-family:
+    "Nunito",
     Inter,
     ui-sans-serif,
     system-ui,
@@ -24,8 +38,8 @@
   line-height: 1.5;
   font-weight: 400;
   color-scheme: light dark;
-  color: #111827;
-  background-color: #f8fafc;
+  color: #2a1d15;
+  background-color: #fbf4ee;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -40,16 +54,19 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(
-      circle at top left,
-      rgba(99, 102, 241, 0.12),
-      transparent 35rem
-    ),
-    linear-gradient(180deg, #eff6ff 0%, #f8fafc 40%, #ffffff 100%);
+    radial-gradient(circle at top left, rgba(224, 135, 82, 0.14), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(209, 111, 56, 0.08), transparent 32rem),
+    linear-gradient(180deg, #fdf1e7 0%, #fbf4ee 45%, #fffaf5 100%);
 }
 
 html.dark {
-  background: #020617;
+  background: #201712;
+}
+
+html.dark body {
+  background:
+    radial-gradient(circle at top left, rgba(224, 135, 82, 0.1), transparent 34rem),
+    linear-gradient(180deg, #221811 0%, #1a130f 45%, #17110d 100%);
 }
 
 button,
@@ -70,6 +87,86 @@ textarea {
 }
 
 ::selection {
-  background: rgba(99, 102, 241, 0.18);
+  background: rgba(209, 111, 56, 0.22);
   color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-terracotta-500);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.input-control {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgb(226 214 203);
+  background-color: rgba(255, 255, 255, 0.9);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.875rem;
+  color: #2a1d15;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.input-control::placeholder {
+  color: #a99586;
+}
+
+.input-control:hover {
+  border-color: rgb(224 135 82 / 0.5);
+}
+
+.input-control:focus {
+  outline: none;
+  border-color: var(--color-terracotta-500);
+  box-shadow: 0 0 0 3px rgba(209, 111, 56, 0.15);
+  background-color: #ffffff;
+}
+
+html.dark .input-control {
+  border-color: rgb(255 255 255 / 0.08);
+  background-color: rgb(255 255 255 / 0.04);
+  color: #f5ebe2;
+}
+
+html.dark .input-control::placeholder {
+  color: #8a7a6d;
+}
+
+html.dark .input-control:focus {
+  background-color: rgb(255 255 255 / 0.06);
+  box-shadow: 0 0 0 3px rgba(224, 135, 82, 0.2);
+}
+
+/* Print */
+@media print {
+  body {
+    background: #ffffff;
+  }
+
+  .print-title {
+    display: block;
+    margin-bottom: 1.25rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #000;
+  }
+
+  .print-table {
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    background: #ffffff !important;
+  }
+
+  .print-table table {
+    width: 100%;
+    min-width: 0 !important;
+  }
+
+  .print-table th,
+  .print-table td {
+    color: #000 !important;
+    border-bottom: 1px solid #ddd;
+  }
 }

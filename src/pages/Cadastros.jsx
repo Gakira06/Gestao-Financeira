@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Landmark, Plus, Tags } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'react-toastify';
 import Modal from '../components/Modal';
 import PageShell from '../components/PageShell';
 import StatCard from '../components/StatCard';
@@ -14,7 +15,7 @@ export default function Cadastros() {
   const [walletModal, setWalletModal] = useState(false);
   const [categoryModal, setCategoryModal] = useState(false);
   const [walletForm, setWalletForm] = useState({ name: '', type: 'Corrente', balance: '' });
-  const [categoryForm, setCategoryForm] = useState({ name: '', type: 'Despesa', colorHex: '#6366f1' });
+  const [categoryForm, setCategoryForm] = useState({ name: '', type: 'Despesa', colorHex: '#bb5a29' });
 
   async function createWallet(event) {
     event.preventDefault();
@@ -27,6 +28,7 @@ export default function Cadastros() {
       setWallets((current) => [...current, { ...payload, id: Date.now() }]);
     }
 
+    toast.success('Conta cadastrada!');
     setWalletModal(false);
     setWalletForm({ name: '', type: 'Corrente', balance: '' });
   }
@@ -41,8 +43,9 @@ export default function Cadastros() {
       setCategories((current) => [...current, { ...categoryForm, id: Date.now() }]);
     }
 
+    toast.success('Categoria cadastrada!');
     setCategoryModal(false);
-    setCategoryForm({ name: '', type: 'Despesa', colorHex: '#6366f1' });
+    setCategoryForm({ name: '', type: 'Despesa', colorHex: '#bb5a29' });
   }
 
   return (
@@ -51,11 +54,11 @@ export default function Cadastros() {
       subtitle="Contas, bancos e categorias com cores prontas para relatórios e gráficos."
       actions={
         <>
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setCategoryModal(true)} className="inline-flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-800 dark:border-zinc-800 dark:bg-zinc-900 dark:text-white">
+          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setCategoryModal(true)} className="inline-flex items-center gap-2 rounded-2xl border border-stone-200 bg-white px-4 py-3 text-sm font-semibold text-stone-800 dark:border-stone-800 dark:bg-stone-900 dark:text-white">
             <Tags size={18} />
             Categoria
           </motion.button>
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setWalletModal(true)} className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500">
+          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setWalletModal(true)} className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/20 transition hover:bg-terracotta-500">
             <Plus size={18} />
             Conta
           </motion.button>
@@ -63,19 +66,24 @@ export default function Cadastros() {
       }
     >
       <div className="grid gap-4 md:grid-cols-2">
-        <StatCard title="Contas cadastradas" value={wallets.length} detail="Bancos, reservas e cartões" icon={Landmark} tone="indigo" />
+        <StatCard title="Contas cadastradas" value={wallets.length} detail="Bancos, reservas e cartões" icon={Landmark} tone="terracotta" />
         <StatCard title="Categorias ativas" value={categories.length} detail="Receitas e despesas" icon={Tags} tone="emerald" />
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
-        <section className="rounded-2xl border border-zinc-200 bg-white/75 p-5 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/70">
-          <h3 className="mb-4 font-semibold text-zinc-950 dark:text-white">Contas</h3>
+        <section className="rounded-2xl border border-stone-200 bg-white/75 p-5 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70">
+          <h3 className="mb-4 font-semibold text-stone-950 dark:text-white">Contas</h3>
           <div className="space-y-3">
+            {wallets.length === 0 && (
+              <p className="rounded-2xl bg-terracotta-50/60 px-4 py-6 text-center text-sm text-stone-500 dark:bg-white/5 dark:text-stone-400">
+                Nenhuma conta cadastrada ainda.
+              </p>
+            )}
             {wallets.map((wallet) => (
-              <motion.div key={wallet.id} whileHover={{ scale: 1.01 }} className="flex items-center justify-between rounded-2xl bg-zinc-100 p-4 dark:bg-zinc-950">
+              <motion.div key={wallet.id} whileHover={{ scale: 1.01 }} className="flex items-center justify-between rounded-2xl bg-stone-100 p-4 dark:bg-stone-950">
                 <div>
-                  <p className="font-medium text-zinc-950 dark:text-white">{wallet.name}</p>
-                  <span className="text-xs text-zinc-500">{wallet.type}</span>
+                  <p className="font-medium text-stone-950 dark:text-white">{wallet.name}</p>
+                  <span className="text-xs text-stone-500">{wallet.type}</span>
                 </div>
                 <strong className={Number(wallet.balance) >= 0 ? 'text-emerald-500' : 'text-rose-500'}>{currency.format(Number(wallet.balance))}</strong>
               </motion.div>
@@ -83,13 +91,18 @@ export default function Cadastros() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-zinc-200 bg-white/75 p-5 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-900/70">
-          <h3 className="mb-4 font-semibold text-zinc-950 dark:text-white">Categorias</h3>
+        <section className="rounded-2xl border border-stone-200 bg-white/75 p-5 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70">
+          <h3 className="mb-4 font-semibold text-stone-950 dark:text-white">Categorias</h3>
           <div className="grid gap-3 sm:grid-cols-2">
+            {categories.length === 0 && (
+              <p className="col-span-full rounded-2xl bg-terracotta-50/60 px-4 py-6 text-center text-sm text-stone-500 dark:bg-white/5 dark:text-stone-400">
+                Nenhuma categoria cadastrada ainda.
+              </p>
+            )}
             {categories.map((category) => (
-              <motion.div key={category.id} whileHover={{ scale: 1.01 }} className="rounded-2xl border border-zinc-200 p-4 dark:border-zinc-800">
+              <motion.div key={category.id} whileHover={{ scale: 1.01 }} className="rounded-2xl border border-stone-200 p-4 dark:border-stone-800">
                 <div className="mb-3 h-2 rounded-full" style={{ backgroundColor: category.colorHex }} />
-                <p className="font-medium text-zinc-950 dark:text-white">{category.name}</p>
+                <p className="font-medium text-stone-950 dark:text-white">{category.name}</p>
                 <span className={category.type === 'Receita' ? 'text-xs text-emerald-500' : 'text-xs text-rose-500'}>{category.type}</span>
               </motion.div>
             ))}
@@ -108,7 +121,7 @@ export default function Cadastros() {
             </select>
             <input type="number" step="0.01" value={walletForm.balance} onChange={(event) => setWalletForm({ ...walletForm, balance: event.target.value })} className="input-control" placeholder="Saldo inicial" />
           </div>
-          <button className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500">Salvar conta</button>
+          <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">Salvar conta</button>
         </form>
       </Modal>
 
@@ -120,9 +133,9 @@ export default function Cadastros() {
               <option>Despesa</option>
               <option>Receita</option>
             </select>
-            <input type="color" value={categoryForm.colorHex} onChange={(event) => setCategoryForm({ ...categoryForm, colorHex: event.target.value })} className="h-12 rounded-2xl border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-950" />
+            <input type="color" value={categoryForm.colorHex} onChange={(event) => setCategoryForm({ ...categoryForm, colorHex: event.target.value })} className="h-12 rounded-2xl border border-stone-200 bg-white p-1 dark:border-stone-800 dark:bg-stone-950" />
           </div>
-          <button className="rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500">Salvar categoria</button>
+          <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">Salvar categoria</button>
         </form>
       </Modal>
     </PageShell>

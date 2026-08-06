@@ -1,9 +1,12 @@
 
 import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import MobileNav from './components/MobileNav';
 import Sidebar from './components/Sidebar';
 import { AppProvider } from './contexts/AppContext.jsx';
+import { useApp } from './contexts/useApp';
 import Cadastros from './pages/Cadastros';
 import Dashboard from './pages/Dashboard';
 import Financeiro from './pages/Financeiro';
@@ -18,10 +21,11 @@ const pages = {
 
 function AppContent() {
   const [activePage, setActivePage] = useState('dashboard');
+  const { theme } = useApp();
   const Page = pages[activePage];
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
+    <div className="min-h-screen text-stone-900 dark:text-white">
       <Sidebar activePage={activePage} onChange={setActivePage} />
       <MobileNav activePage={activePage} onChange={setActivePage} />
       <main className="lg:pl-72">
@@ -29,6 +33,13 @@ function AppContent() {
           <Page key={activePage} />
         </AnimatePresence>
       </main>
+      <ToastContainer
+        position="bottom-right"
+        theme={theme === 'dark' ? 'dark' : 'light'}
+        toastClassName="!rounded-2xl !font-sans"
+        autoClose={2600}
+        newestOnTop
+      />
     </div>
   );
 }

@@ -12,14 +12,14 @@ export default function PageShell({ children, title, subtitle, actions }) {
     >
       <header className="print:hidden mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <p className="text-sm font-medium text-indigo-500 dark:text-indigo-400">
+          <p className="text-sm font-medium text-terracotta-500 dark:text-terracotta-400">
             Organização simples e prática
           </p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white">
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight text-stone-900 dark:text-white">
             {title}
           </h2>
           {subtitle && (
-            <p className="mt-2 max-w-2xl text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-2 max-w-2xl text-sm text-stone-500 dark:text-stone-400">
               {subtitle}
             </p>
           )}

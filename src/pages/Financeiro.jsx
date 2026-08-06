@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Plus, ReceiptText, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { toast } from 'react-toastify';
 import FinanceToolbar from '../components/FinanceToolbar';
 import Modal from '../components/Modal';
 import PageShell from '../components/PageShell';
@@ -92,6 +93,7 @@ export default function Financeiro() {
       setTransactions((current) => current.map((item) => item.id === transaction.id ? { ...item, status: 'Efetivado', paymentDate: new Date().toISOString() } : item));
       setPayingId(null);
       refreshBaseData();
+      toast.success('Transação baixada!');
     }, 420);
   }
 
@@ -104,6 +106,7 @@ export default function Financeiro() {
 
     setTransactions((current) => current.filter((item) => item.id !== transaction.id));
     refreshBaseData();
+    toast.info('Transação removida.');
   }
 
   async function handleCreate(event) {
@@ -123,6 +126,7 @@ export default function Financeiro() {
       setTransactions((current) => [{ ...payload, id: Date.now(), paymentDate: payload.status === 'Efetivado' ? new Date().toISOString() : null }, ...current]);
     }
 
+    toast.success('Transação cadastrada!');
     setIsModalOpen(false);
     setForm({ description: '', amount: '', type: 'Despesa', walletId: '', categoryId: '', dueDate: '', status: 'Pendente' });
   }
@@ -134,7 +138,7 @@ export default function Financeiro() {
       title="Finanças"
       subtitle="Extrato vivo com filtros avançados, baixa de pendências e impressão profissional."
       actions={
-        <motion.button whileTap={{ scale: 0.98 }} onClick={() => setIsModalOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/20 transition hover:bg-indigo-500">
+        <motion.button whileTap={{ scale: 0.98 }} onClick={() => setIsModalOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/25 transition hover:bg-terracotta-500">
           <Plus size={18} />
           Nova transação
         </motion.button>
@@ -148,7 +152,7 @@ export default function Financeiro() {
         <StatCard title="Receitas filtradas" value={currency.format(totals.income)} icon={TrendingUp} tone="emerald" />
         <StatCard title="Despesas filtradas" value={currency.format(totals.expense)} icon={TrendingDown} tone="rose" />
         <StatCard title="Pendências" value={currency.format(totals.pending)} icon={ReceiptText} tone="amber" />
-        <StatCard title="Contas" value={wallets.length} icon={Wallet} tone="indigo" />
+        <StatCard title="Contas" value={wallets.length} icon={Wallet} tone="terracotta" />
       </div>
 
       <div className="mt-5">
@@ -186,7 +190,7 @@ export default function Financeiro() {
               {categories.filter((category) => category.type === form.type).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
             </select>
           </div>
-          <button className="mt-2 rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-500">Salvar transação</button>
+          <button className="mt-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">Salvar transação</button>
         </form>
       </Modal>
     </PageShell>

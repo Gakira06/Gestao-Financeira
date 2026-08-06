@@ -10,7 +10,7 @@ const items = [
 
 export default function MobileNav({ activePage, onChange }) {
   return (
-    <nav className="print:hidden fixed inset-x-3 bottom-3 z-50 grid grid-cols-4 gap-2 rounded-[1.5rem] border border-slate-200 bg-white/95 p-2 shadow-2xl backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/95 lg:hidden">
+    <nav className="print:hidden fixed inset-x-3 bottom-3 z-50 grid grid-cols-4 gap-2 rounded-[1.5rem] border border-terracotta-100 bg-white/95 p-2 shadow-2xl backdrop-blur-xl dark:border-white/5 dark:bg-[#1c140f]/95 lg:hidden">
       {items.map((item) => {
         const Icon = item.icon;
         const active = activePage === item.id;
@@ -22,8 +22,8 @@ export default function MobileNav({ activePage, onChange }) {
             onClick={() => onChange(item.id)}
             className={`flex flex-col items-center gap-1 rounded-3xl px-2 py-2 text-[11px] font-semibold transition ${
               active
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20"
-                : "text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                ? "bg-terracotta-600 text-white shadow-lg shadow-terracotta-600/25"
+                : "text-stone-500 hover:bg-terracotta-50 dark:text-stone-400 dark:hover:bg-white/5"
             }`}
           >
             <Icon size={18} />
