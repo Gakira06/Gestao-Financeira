@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { Plus, ReceiptText, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
+import Calendar from '../components/Calendar';
+import Field from '../components/Field';
 import FinanceToolbar from '../components/FinanceToolbar';
 import Modal from '../components/Modal';
 import PageShell from '../components/PageShell';
@@ -111,6 +113,12 @@ export default function Financeiro() {
 
   async function handleCreate(event) {
     event.preventDefault();
+
+    if (!form.dueDate) {
+      toast.error('Selecione a data de vencimento.');
+      return;
+    }
+
     const payload = {
       ...form,
       walletId: Number(form.walletId),
@@ -165,30 +173,44 @@ export default function Financeiro() {
 
       <Modal open={isModalOpen} title="Nova transação" onClose={() => setIsModalOpen(false)}>
         <form onSubmit={handleCreate} className="grid gap-3">
-          <input required value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="input-control" placeholder="Descrição" />
+          <Field label="Descrição">
+            <input required value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="input-control" placeholder="Ex: Aluguel, salário, mercado..." />
+          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} className="input-control" placeholder="Valor" />
-            <input required type="date" value={form.dueDate} onChange={(event) => setForm({ ...form, dueDate: event.target.value })} className="input-control" />
+            <Field label="Valor (R$)">
+              <input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} className="input-control" placeholder="0,00" />
+            </Field>
+            <Field label="Vencimento">
+              <Calendar value={form.dueDate} onChange={(date) => setForm({ ...form, dueDate: date })} placeholder="Escolher data" />
+            </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value, categoryId: '' })} className="input-control">
-              <option>Despesa</option>
-              <option>Receita</option>
-            </select>
-            <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="input-control">
-              <option>Pendente</option>
-              <option>Efetivado</option>
-            </select>
+            <Field label="Tipo">
+              <select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value, categoryId: '' })} className="input-control">
+                <option>Despesa</option>
+                <option>Receita</option>
+              </select>
+            </Field>
+            <Field label="Status">
+              <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="input-control">
+                <option>Pendente</option>
+                <option>Efetivado</option>
+              </select>
+            </Field>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <select required value={form.walletId} onChange={(event) => setForm({ ...form, walletId: event.target.value })} className="input-control">
-              <option value="">Conta</option>
-              {wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
-            </select>
-            <select required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} className="input-control">
-              <option value="">Categoria</option>
-              {categories.filter((category) => category.type === form.type).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-            </select>
+            <Field label="Conta">
+              <select required value={form.walletId} onChange={(event) => setForm({ ...form, walletId: event.target.value })} className="input-control">
+                <option value="">Selecionar conta</option>
+                {wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Categoria">
+              <select required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} className="input-control">
+                <option value="">Selecionar categoria</option>
+                {categories.filter((category) => category.type === form.type).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              </select>
+            </Field>
           </div>
           <button className="mt-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">Salvar transação</button>
         </form>

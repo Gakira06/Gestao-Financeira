@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Landmark, Plus, Tags } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
+import Field from '../components/Field';
 import Modal from '../components/Modal';
 import PageShell from '../components/PageShell';
 import StatCard from '../components/StatCard';
@@ -112,14 +113,20 @@ export default function Cadastros() {
 
       <Modal open={walletModal} title="Nova conta" onClose={() => setWalletModal(false)}>
         <form onSubmit={createWallet} className="grid gap-3">
-          <input required value={walletForm.name} onChange={(event) => setWalletForm({ ...walletForm, name: event.target.value })} className="input-control" placeholder="Nome" />
+          <Field label="Nome da conta">
+            <input required value={walletForm.name} onChange={(event) => setWalletForm({ ...walletForm, name: event.target.value })} className="input-control" placeholder="Ex: Nubank, Carteira, Reserva..." />
+          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <select value={walletForm.type} onChange={(event) => setWalletForm({ ...walletForm, type: event.target.value })} className="input-control">
-              <option>Corrente</option>
-              <option>Poupança</option>
-              <option>Crédito</option>
-            </select>
-            <input type="number" step="0.01" value={walletForm.balance} onChange={(event) => setWalletForm({ ...walletForm, balance: event.target.value })} className="input-control" placeholder="Saldo inicial" />
+            <Field label="Tipo">
+              <select value={walletForm.type} onChange={(event) => setWalletForm({ ...walletForm, type: event.target.value })} className="input-control">
+                <option>Corrente</option>
+                <option>Poupança</option>
+                <option>Crédito</option>
+              </select>
+            </Field>
+            <Field label="Saldo inicial (R$)">
+              <input type="number" step="0.01" value={walletForm.balance} onChange={(event) => setWalletForm({ ...walletForm, balance: event.target.value })} className="input-control" placeholder="0,00" />
+            </Field>
           </div>
           <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">Salvar conta</button>
         </form>
@@ -127,13 +134,19 @@ export default function Cadastros() {
 
       <Modal open={categoryModal} title="Nova categoria" onClose={() => setCategoryModal(false)}>
         <form onSubmit={createCategory} className="grid gap-3">
-          <input required value={categoryForm.name} onChange={(event) => setCategoryForm({ ...categoryForm, name: event.target.value })} className="input-control" placeholder="Nome" />
+          <Field label="Nome da categoria">
+            <input required value={categoryForm.name} onChange={(event) => setCategoryForm({ ...categoryForm, name: event.target.value })} className="input-control" placeholder="Ex: Mercado, Salário..." />
+          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <select value={categoryForm.type} onChange={(event) => setCategoryForm({ ...categoryForm, type: event.target.value })} className="input-control">
-              <option>Despesa</option>
-              <option>Receita</option>
-            </select>
-            <input type="color" value={categoryForm.colorHex} onChange={(event) => setCategoryForm({ ...categoryForm, colorHex: event.target.value })} className="h-12 rounded-2xl border border-stone-200 bg-white p-1 dark:border-stone-800 dark:bg-stone-950" />
+            <Field label="Tipo">
+              <select value={categoryForm.type} onChange={(event) => setCategoryForm({ ...categoryForm, type: event.target.value })} className="input-control">
+                <option>Despesa</option>
+                <option>Receita</option>
+              </select>
+            </Field>
+            <Field label="Cor">
+              <input type="color" value={categoryForm.colorHex} onChange={(event) => setCategoryForm({ ...categoryForm, colorHex: event.target.value })} className="h-11 w-full rounded-2xl border border-stone-200 bg-white p-1 dark:border-stone-800 dark:bg-stone-950" />
+            </Field>
           </div>
           <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">Salvar categoria</button>
         </form>

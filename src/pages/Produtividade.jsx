@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "react-toastify";
+import Calendar from "../components/Calendar";
+import Field from "../components/Field";
 import Modal from "../components/Modal";
 import PageShell from "../components/PageShell";
 import StatCard from "../components/StatCard";
@@ -273,46 +275,52 @@ export default function Produtividade() {
               <h3 className="text-sm font-semibold">Calculadora de metas</h3>
             </div>
             <div className="grid gap-3">
-              <input
-                type="number"
-                min="0"
-                value={forecastForm.monthlyContribution}
-                onChange={(event) =>
-                  setForecastForm({
-                    ...forecastForm,
-                    monthlyContribution: event.target.value,
-                  })
-                }
-                className="input-control"
-                placeholder="Quanto você guarda por mês"
-              />
-              <input
-                type="number"
-                min="1"
-                value={forecastForm.months}
-                onChange={(event) =>
-                  setForecastForm({
-                    ...forecastForm,
-                    months: event.target.value,
-                  })
-                }
-                className="input-control"
-                placeholder="Em quantos meses"
-              />
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={forecastForm.monthlyRate}
-                onChange={(event) =>
-                  setForecastForm({
-                    ...forecastForm,
-                    monthlyRate: event.target.value,
-                  })
-                }
-                className="input-control"
-                placeholder="Taxa mensal (%)"
-              />
+              <Field label="Quanto você guarda por mês (R$)">
+                <input
+                  type="number"
+                  min="0"
+                  value={forecastForm.monthlyContribution}
+                  onChange={(event) =>
+                    setForecastForm({
+                      ...forecastForm,
+                      monthlyContribution: event.target.value,
+                    })
+                  }
+                  className="input-control"
+                  placeholder="200"
+                />
+              </Field>
+              <Field label="Em quantos meses">
+                <input
+                  type="number"
+                  min="1"
+                  value={forecastForm.months}
+                  onChange={(event) =>
+                    setForecastForm({
+                      ...forecastForm,
+                      months: event.target.value,
+                    })
+                  }
+                  className="input-control"
+                  placeholder="12"
+                />
+              </Field>
+              <Field label="Taxa de rendimento mensal (%)">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  value={forecastForm.monthlyRate}
+                  onChange={(event) =>
+                    setForecastForm({
+                      ...forecastForm,
+                      monthlyRate: event.target.value,
+                    })
+                  }
+                  className="input-control"
+                  placeholder="0,8"
+                />
+              </Field>
             </div>
             <div className="mt-4 rounded-2xl bg-terracotta-600/10 p-4 text-sm text-stone-700 dark:text-stone-200">
               <div className="flex items-center gap-2 font-semibold text-terracotta-600 dark:text-terracotta-400">
@@ -338,54 +346,61 @@ export default function Produtividade() {
         onClose={() => setTaskModal(false)}
       >
         <form onSubmit={createTask} className="grid gap-3">
-          <input
-            required
-            value={taskForm.title}
-            onChange={(event) =>
-              setTaskForm({ ...taskForm, title: event.target.value })
-            }
-            className="input-control"
-            placeholder="Título"
-          />
-          <textarea
-            value={taskForm.description}
-            onChange={(event) =>
-              setTaskForm({ ...taskForm, description: event.target.value })
-            }
-            className="input-control min-h-24"
-            placeholder="Descrição"
-          />
-          <div className="grid grid-cols-3 gap-3">
-            <select
-              value={taskForm.status}
-              onChange={(event) =>
-                setTaskForm({ ...taskForm, status: event.target.value })
-              }
-              className="input-control"
-            >
-              {statuses.map((status) => (
-                <option key={status}>{status}</option>
-              ))}
-            </select>
-            <select
-              value={taskForm.priority}
-              onChange={(event) =>
-                setTaskForm({ ...taskForm, priority: event.target.value })
-              }
-              className="input-control"
-            >
-              <option>Baixa</option>
-              <option>Média</option>
-              <option>Alta</option>
-            </select>
+          <Field label="Título">
             <input
-              type="date"
-              value={taskForm.dueDate}
+              required
+              value={taskForm.title}
               onChange={(event) =>
-                setTaskForm({ ...taskForm, dueDate: event.target.value })
+                setTaskForm({ ...taskForm, title: event.target.value })
               }
               className="input-control"
+              placeholder="Ex: Revisar orçamento do mês"
             />
+          </Field>
+          <Field label="Descrição">
+            <textarea
+              value={taskForm.description}
+              onChange={(event) =>
+                setTaskForm({ ...taskForm, description: event.target.value })
+              }
+              className="input-control min-h-24"
+              placeholder="Detalhes da tarefa (opcional)"
+            />
+          </Field>
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Status">
+              <select
+                value={taskForm.status}
+                onChange={(event) =>
+                  setTaskForm({ ...taskForm, status: event.target.value })
+                }
+                className="input-control"
+              >
+                {statuses.map((status) => (
+                  <option key={status}>{status}</option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Prioridade">
+              <select
+                value={taskForm.priority}
+                onChange={(event) =>
+                  setTaskForm({ ...taskForm, priority: event.target.value })
+                }
+                className="input-control"
+              >
+                <option>Baixa</option>
+                <option>Média</option>
+                <option>Alta</option>
+              </select>
+            </Field>
+            <Field label="Prazo">
+              <Calendar
+                value={taskForm.dueDate}
+                onChange={(date) => setTaskForm({ ...taskForm, dueDate: date })}
+                placeholder="Opcional"
+              />
+            </Field>
           </div>
           <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">
             Salvar tarefa
@@ -399,42 +414,50 @@ export default function Produtividade() {
         onClose={() => setEventModal(false)}
       >
         <form onSubmit={createEvent} className="grid gap-3">
-          <input
-            required
-            value={eventForm.title}
-            onChange={(event) =>
-              setEventForm({ ...eventForm, title: event.target.value })
-            }
-            className="input-control"
-            placeholder="Título"
-          />
-          <textarea
-            value={eventForm.description}
-            onChange={(event) =>
-              setEventForm({ ...eventForm, description: event.target.value })
-            }
-            className="input-control min-h-24"
-            placeholder="Descrição"
-          />
+          <Field label="Título">
+            <input
+              required
+              value={eventForm.title}
+              onChange={(event) =>
+                setEventForm({ ...eventForm, title: event.target.value })
+              }
+              className="input-control"
+              placeholder="Ex: Consulta, reunião..."
+            />
+          </Field>
+          <Field label="Descrição">
+            <textarea
+              value={eventForm.description}
+              onChange={(event) =>
+                setEventForm({ ...eventForm, description: event.target.value })
+              }
+              className="input-control min-h-24"
+              placeholder="Detalhes do compromisso (opcional)"
+            />
+          </Field>
           <div className="grid grid-cols-2 gap-3">
-            <input
-              required
-              type="datetime-local"
-              value={eventForm.startDate}
-              onChange={(event) =>
-                setEventForm({ ...eventForm, startDate: event.target.value })
-              }
-              className="input-control"
-            />
-            <input
-              required
-              type="datetime-local"
-              value={eventForm.endDate}
-              onChange={(event) =>
-                setEventForm({ ...eventForm, endDate: event.target.value })
-              }
-              className="input-control"
-            />
+            <Field label="Início">
+              <input
+                required
+                type="datetime-local"
+                value={eventForm.startDate}
+                onChange={(event) =>
+                  setEventForm({ ...eventForm, startDate: event.target.value })
+                }
+                className="input-control"
+              />
+            </Field>
+            <Field label="Fim">
+              <input
+                required
+                type="datetime-local"
+                value={eventForm.endDate}
+                onChange={(event) =>
+                  setEventForm({ ...eventForm, endDate: event.target.value })
+                }
+                className="input-control"
+              />
+            </Field>
           </div>
           <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">
             Salvar evento

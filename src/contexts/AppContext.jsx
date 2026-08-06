@@ -22,9 +22,10 @@ export function AppProvider({ children }) {
     setLoading(true);
 
     try {
-      const [walletData, categoryData, taskData, eventData, dashboardData] = await Promise.all([
+      const [walletData, categoryData, transactionData, taskData, eventData, dashboardData] = await Promise.all([
         api.getWallets(),
         api.getCategories(),
+        api.getTransactions(),
         api.getTasks(),
         api.getEvents(),
         api.getDashboard(),
@@ -32,6 +33,7 @@ export function AppProvider({ children }) {
 
       setWallets(walletData);
       setCategories(categoryData);
+      setTransactions(transactionData);
       setTasks(taskData);
       setEvents(eventData);
       setDashboard(dashboardData);
