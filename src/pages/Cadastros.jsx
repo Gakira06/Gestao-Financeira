@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Landmark, Plus, Tags } from 'lucide-react';
+import { Landmark, Pencil, Plus, Tags, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import Field from '../components/Field';
@@ -10,28 +10,60 @@ import { useApp } from '../contexts/useApp';
 import { api } from '../services/api';
 
 const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const emptyWalletForm = { name: '', type: 'Corrente', balance: '' };
 
 export default function Cadastros() {
   const { wallets, setWallets, categories, setCategories } = useApp();
   const [walletModal, setWalletModal] = useState(false);
   const [categoryModal, setCategoryModal] = useState(false);
-  const [walletForm, setWalletForm] = useState({ name: '', type: 'Corrente', balance: '' });
+  const [editingWalletId, setEditingWalletId] = useState(null);
+  const [walletForm, setWalletForm] = useState(emptyWalletForm);
   const [categoryForm, setCategoryForm] = useState({ name: '', type: 'Despesa', colorHex: '#bb5a29' });
 
-  async function createWallet(event) {
+  function openNewWalletModal() {
+    setEditingWalletId(null);
+    setWalletForm(emptyWalletForm);
+    setWalletModal(true);
+  }
+
+  function openEditWalletModal(wallet) {
+    setEditingWalletId(wallet.id);
+    setWalletForm({ name: wallet.name, type: wallet.type, balance: String(wallet.balance) });
+    setWalletModal(true);
+  }
+
+  async function submitWallet(event) {
     event.preventDefault();
     const payload = { ...walletForm, balance: Number(walletForm.balance || 0) };
 
     try {
-      const created = await api.createWallet(payload);
-      setWallets((current) => [...current, created]);
-    } catch {
-      setWallets((current) => [...current, { ...payload, id: Date.now() }]);
+      if (editingWalletId) {
+        const updated = await api.updateWallet(editingWalletId, payload);
+        setWallets((current) => current.map((item) => (item.id === editingWalletId ? updated : item)));
+        toast.success('Conta atualizada!');
+      } else {
+        const created = await api.createWallet(payload);
+        setWallets((current) => [...current, created]);
+        toast.success('Conta cadastrada!');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Nao foi possivel salvar a conta.');
+      return;
     }
 
-    toast.success('Conta cadastrada!');
     setWalletModal(false);
-    setWalletForm({ name: '', type: 'Corrente', balance: '' });
+    setEditingWalletId(null);
+    setWalletForm(emptyWalletForm);
+  }
+
+  async function removeWallet(wallet) {
+    try {
+      await api.deleteWallet(wallet.id);
+      setWallets((current) => current.filter((item) => item.id !== wallet.id));
+      toast.info('Conta removida.');
+    } catch (error) {
+      toast.error(error.message || 'Nao foi possivel excluir a conta.');
+    }
   }
 
   async function createCategory(event) {
@@ -59,7 +91,7 @@ export default function Cadastros() {
             <Tags size={18} />
             Categoria
           </motion.button>
-          <motion.button whileTap={{ scale: 0.98 }} onClick={() => setWalletModal(true)} className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/20 transition hover:bg-terracotta-500">
+          <motion.button whileTap={{ scale: 0.98 }} onClick={openNewWalletModal} className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/20 transition hover:bg-terracotta-500">
             <Plus size={18} />
             Conta
           </motion.button>
@@ -81,12 +113,20 @@ export default function Cadastros() {
               </p>
             )}
             {wallets.map((wallet) => (
-              <motion.div key={wallet.id} whileHover={{ scale: 1.01 }} className="flex items-center justify-between rounded-2xl bg-stone-100 p-4 dark:bg-stone-950">
-                <div>
+              <motion.div key={wallet.id} whileHover={{ scale: 1.01 }} className="flex items-center justify-between gap-3 rounded-2xl bg-stone-100 p-4 dark:bg-stone-950">
+                <div className="min-w-0">
                   <p className="font-medium text-stone-950 dark:text-white">{wallet.name}</p>
                   <span className="text-xs text-stone-500">{wallet.type}</span>
                 </div>
-                <strong className={Number(wallet.balance) >= 0 ? 'text-emerald-500' : 'text-rose-500'}>{currency.format(Number(wallet.balance))}</strong>
+                <div className="flex items-center gap-3">
+                  <strong className={Number(wallet.balance) >= 0 ? 'text-emerald-500' : 'text-rose-500'}>{currency.format(Number(wallet.balance))}</strong>
+                  <button onClick={() => openEditWalletModal(wallet)} className="text-stone-400 hover:text-terracotta-500" title="Editar conta">
+                    <Pencil size={16} />
+                  </button>
+                  <button onClick={() => removeWallet(wallet)} className="text-stone-400 hover:text-rose-500" title="Excluir conta">
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -111,8 +151,16 @@ export default function Cadastros() {
         </section>
       </div>
 
-      <Modal open={walletModal} title="Nova conta" onClose={() => setWalletModal(false)}>
-        <form onSubmit={createWallet} className="grid gap-3">
+      <Modal
+        open={walletModal}
+        title={editingWalletId ? 'Editar conta' : 'Nova conta'}
+        onClose={() => {
+          setWalletModal(false);
+          setEditingWalletId(null);
+          setWalletForm(emptyWalletForm);
+        }}
+      >
+        <form onSubmit={submitWallet} className="grid gap-3">
           <Field label="Nome da conta">
             <input required value={walletForm.name} onChange={(event) => setWalletForm({ ...walletForm, name: event.target.value })} className="input-control" placeholder="Ex: Nubank, Carteira, Reserva..." />
           </Field>
@@ -124,11 +172,13 @@ export default function Cadastros() {
                 <option>Crédito</option>
               </select>
             </Field>
-            <Field label="Saldo inicial (R$)">
+            <Field label={editingWalletId ? 'Saldo (R$)' : 'Saldo inicial (R$)'}>
               <input type="number" step="0.01" value={walletForm.balance} onChange={(event) => setWalletForm({ ...walletForm, balance: event.target.value })} className="input-control" placeholder="0,00" />
             </Field>
           </div>
-          <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">Salvar conta</button>
+          <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">
+            {editingWalletId ? 'Atualizar conta' : 'Salvar conta'}
+          </button>
         </form>
       </Modal>
 
