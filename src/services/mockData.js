@@ -21,9 +21,9 @@ export const fallbackTransactions = [
 ];
 
 export const fallbackTasks = [
-  { id: 1, title: 'Revisar orçamento do mês', status: 'Em Andamento', priority: 'Alta', dueDate: '2026-05-29T12:00:00.000Z' },
-  { id: 2, title: 'Treino funcional', status: 'A Fazer', priority: 'Média', dueDate: '2026-05-28T19:00:00.000Z' },
-  { id: 3, title: 'Fechar relatório semanal', status: 'Concluído', priority: 'Baixa', dueDate: '2026-05-27T18:00:00.000Z' },
+  { id: 1, title: 'Revisar orçamento do mês', status: 'Em Andamento', priority: 'Alta', color: 'Vermelho', dueDate: '2026-05-29T12:00:00.000Z' },
+  { id: 2, title: 'Treino funcional', status: 'A Fazer', priority: 'Média', color: 'Amarelo', dueDate: '2026-05-28T19:00:00.000Z' },
+  { id: 3, title: 'Fechar relatório semanal', status: 'Concluído', priority: 'Baixa', color: 'Verde', dueDate: '2026-05-27T18:00:00.000Z' },
 ];
 
 export const fallbackEvents = [

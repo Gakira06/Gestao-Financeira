@@ -27,6 +27,13 @@ const currency = new Intl.NumberFormat("pt-BR", {
   currency: "BRL",
 });
 
+const PRIORITY_ORDER = { Alta: 0, Média: 1, Baixa: 2 };
+const PRIORITY_STYLES = {
+  Alta: { color: "Vermelho", badge: "bg-rose-500/10 text-rose-500", dot: "bg-rose-500", border: "border-l-rose-500" },
+  Média: { color: "Amarelo", badge: "bg-amber-500/10 text-amber-500", dot: "bg-amber-500", border: "border-l-amber-500" },
+  Baixa: { color: "Verde", badge: "bg-emerald-500/10 text-emerald-500", dot: "bg-emerald-500", border: "border-l-emerald-500" },
+};
+
 export default function Produtividade() {
   const { tasks, setTasks, events, setEvents } = useApp();
   const [taskModal, setTaskModal] = useState(false);
@@ -51,7 +58,7 @@ export default function Produtividade() {
   });
 
   const sortedTasks = useMemo(
-    () => [...tasks].sort((a, b) => (a.status === "Concluído" ? 1 : -1)),
+    () => [...tasks].sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]),
     [tasks],
   );
   const nextEvents = useMemo(
@@ -73,7 +80,11 @@ export default function Produtividade() {
 
   async function createTask(event) {
     event.preventDefault();
-    const payload = { ...taskForm, dueDate: taskForm.dueDate || null };
+    const payload = {
+      ...taskForm,
+      dueDate: taskForm.dueDate || null,
+      color: PRIORITY_STYLES[taskForm.priority].color,
+    };
 
     try {
       const created = await api.createTask(payload);
@@ -195,12 +206,15 @@ export default function Produtividade() {
                 )}
                 {sortedTasks
                   .filter((task) => task.status === status)
-                  .map((task) => (
+                  .map((task) => {
+                    const style = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.Média;
+
+                    return (
                     <motion.article
                       key={task.id}
                       layout
                       whileHover={{ scale: 1.01 }}
-                      className="rounded-2xl border border-stone-200 bg-stone-50 p-4 dark:border-stone-800 dark:bg-stone-950"
+                      className={`rounded-2xl border border-l-4 border-stone-200 bg-stone-50 p-4 dark:border-stone-800 ${style.border} dark:bg-stone-950`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -212,7 +226,8 @@ export default function Produtividade() {
                               {task.description}
                             </p>
                           )}
-                          <span className="mt-2 inline-flex rounded-full bg-terracotta-500/10 px-2.5 py-1 text-xs text-terracotta-500">
+                          <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${style.badge}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
                             {task.priority}
                           </span>
                         </div>
@@ -235,7 +250,8 @@ export default function Produtividade() {
                         ))}
                       </select>
                     </motion.article>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
           ))}
@@ -389,9 +405,9 @@ export default function Produtividade() {
                 }
                 className="input-control"
               >
-                <option>Baixa</option>
-                <option>Média</option>
-                <option>Alta</option>
+                <option value="Baixa">🟢 Baixa</option>
+                <option value="Média">🟡 Média</option>
+                <option value="Alta">🔴 Alta</option>
               </select>
             </Field>
             <Field label="Prazo">
