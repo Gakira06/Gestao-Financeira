@@ -110,7 +110,7 @@ export default function Calendar({ value, onChange, placeholder = 'Selecionar da
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-30 mt-2 w-72 rounded-2xl border border-terracotta-100 bg-white p-3 shadow-2xl dark:border-white/10 dark:bg-[#1c140f]"
+            className="absolute left-0 z-30 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-terracotta-100 bg-white p-3 shadow-2xl dark:border-white/10 dark:bg-[#1c140f]"
           >
             <div className="mb-2 flex items-center justify-between">
               <button

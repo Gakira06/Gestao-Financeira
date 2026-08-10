@@ -41,7 +41,7 @@ export default function FinanceToolbar({ filters, setFilters, wallets, categorie
 
         <div className="min-w-55 flex-1">
           <span className={caption}>Período (opcional)</span>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Calendar value={filters.startDate} onChange={(date) => updateField('startDate', date)} placeholder="De" />
             <Calendar value={filters.endDate} onChange={(date) => updateField('endDate', date)} placeholder="Até" />
           </div>

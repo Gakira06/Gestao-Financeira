@@ -73,9 +73,12 @@ export default function Financeiro() {
   const totals = useMemo(() => {
     return filteredTransactions.reduce(
       (acc, item) => {
-        if (item.type === 'Receita') acc.income += Number(item.amount);
-        if (item.type === 'Despesa') acc.expense += Number(item.amount);
-        if (item.status === 'Pendente') acc.pending += Number(item.amount);
+        const amount = Number(item.amount);
+        const isSettled = item.status === 'Efetivado';
+
+        if (item.type === 'Receita' && isSettled) acc.income += amount;
+        if (item.type === 'Despesa' && isSettled) acc.expense += amount;
+        if (!isSettled) acc.pending += amount;
         return acc;
       },
       { income: 0, expense: 0, pending: 0 },
@@ -176,7 +179,7 @@ export default function Financeiro() {
           <Field label="Descrição">
             <input required value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="input-control" placeholder="Ex: Aluguel, salário, mercado..." />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Valor (R$)">
               <input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} className="input-control" placeholder="0,00" />
             </Field>
