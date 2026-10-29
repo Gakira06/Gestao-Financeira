@@ -5,7 +5,9 @@ import {
   CheckCircle2,
   Clock3,
   Flag,
+  Pencil,
   Plus,
+  RotateCcw,
   Sparkles,
   Target,
   Trash2,
@@ -19,6 +21,7 @@ import PageShell from "../components/PageShell";
 import StatCard from "../components/StatCard";
 import { useApp } from "../contexts/useApp";
 import { api } from "../services/api";
+import { dateKey, relativeDay, todayKey } from "../utils/finance";
 import { calculateProjectedBalance } from "../utils/forecast";
 
 const statuses = ["A Fazer", "Em Andamento", "Concluído"];
@@ -26,6 +29,16 @@ const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL",
 });
+const eventTime = new Intl.DateTimeFormat("pt-BR", {
+  weekday: "short",
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+const emptyTaskForm = { title: "", description: "", status: "A Fazer", priority: "Média", dueDate: "" };
+const emptyEventForm = { title: "", description: "", startDate: "", endDate: "" };
 
 const PRIORITY_ORDER = { Alta: 0, Média: 1, Baixa: 2 };
 const PRIORITY_STYLES = {
@@ -34,40 +47,52 @@ const PRIORITY_STYLES = {
   Baixa: { color: "Verde", badge: "bg-emerald-500/10 text-emerald-500", dot: "bg-emerald-500", border: "border-l-emerald-500" },
 };
 
+function plusOneHour(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  date.setHours(date.getHours() + 1);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function Produtividade() {
-  const { tasks, setTasks, events, setEvents } = useApp();
+  const { tasks, setTasks, events, setEvents, persist, removeWithUndo, updateTask } = useApp();
   const [taskModal, setTaskModal] = useState(false);
+  const [editingTaskId, setEditingTaskId] = useState(null);
   const [eventModal, setEventModal] = useState(false);
-  const [taskForm, setTaskForm] = useState({
-    title: "",
-    description: "",
-    status: "A Fazer",
-    priority: "Média",
-    dueDate: "",
-  });
-  const [eventForm, setEventForm] = useState({
-    title: "",
-    description: "",
-    startDate: "",
-    endDate: "",
-  });
+  const [showPastEvents, setShowPastEvents] = useState(false);
+  const [taskForm, setTaskForm] = useState(emptyTaskForm);
+  const [eventForm, setEventForm] = useState(emptyEventForm);
   const [forecastForm, setForecastForm] = useState({
     monthlyContribution: "200",
     months: "12",
     monthlyRate: "0.8",
   });
+  const today = todayKey();
 
+  // Prioridade primeiro; dentro da mesma prioridade, o prazo mais próximo
   const sortedTasks = useMemo(
-    () => [...tasks].sort((a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]),
+    () =>
+      [...tasks].sort(
+        (a, b) =>
+          PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority] ||
+          (dateKey(a.dueDate) || "9999").localeCompare(dateKey(b.dueDate) || "9999"),
+      ),
     [tasks],
   );
-  const nextEvents = useMemo(
-    () =>
-      [...events]
+
+  const { nextEvents, pastEventsCount } = useMemo(() => {
+    const now = new Date();
+    const isPast = (item) => new Date(item.endDate || item.startDate) < now;
+    return {
+      pastEventsCount: events.filter(isPast).length,
+      nextEvents: [...events]
+        .filter((item) => showPastEvents || !isPast(item))
         .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
-        .slice(0, 4),
-    [events],
-  );
+        .slice(0, showPastEvents ? 30 : 6),
+    };
+  }, [events, showPastEvents]);
+
   const forecast = useMemo(
     () =>
       calculateProjectedBalance({
@@ -78,7 +103,31 @@ export default function Produtividade() {
     [forecastForm],
   );
 
-  async function createTask(event) {
+  function openNewTask() {
+    setEditingTaskId(null);
+    setTaskForm(emptyTaskForm);
+    setTaskModal(true);
+  }
+
+  function openEditTask(task) {
+    setEditingTaskId(task.id);
+    setTaskForm({
+      title: task.title,
+      description: task.description || "",
+      status: task.status,
+      priority: task.priority,
+      dueDate: dateKey(task.dueDate),
+    });
+    setTaskModal(true);
+  }
+
+  function closeTaskModal() {
+    setTaskModal(false);
+    setEditingTaskId(null);
+    setTaskForm(emptyTaskForm);
+  }
+
+  async function submitTask(event) {
     event.preventDefault();
     const payload = {
       ...taskForm,
@@ -86,66 +135,60 @@ export default function Produtividade() {
       color: PRIORITY_STYLES[taskForm.priority].color,
     };
 
-    try {
-      const created = await api.createTask(payload);
-      setTasks((current) => [created, ...current]);
-    } catch {
-      setTasks((current) => [{ ...payload, id: Date.now() }, ...current]);
+    if (editingTaskId) {
+      const task = tasks.find((item) => item.id === editingTaskId);
+      if (!(await updateTask(task, payload))) return;
+      toast.success("Tarefa atualizada!");
+    } else {
+      try {
+        const created = await persist(() => api.createTask(payload), () => ({ ...payload, id: Date.now() }));
+        setTasks((current) => [created, ...current]);
+      } catch {
+        return;
+      }
+      toast.success("Tarefa criada!");
     }
+    closeTaskModal();
+  }
 
-    toast.success("Tarefa criada!");
-    setTaskModal(false);
-    setTaskForm({
-      title: "",
-      description: "",
-      status: "A Fazer",
-      priority: "Média",
-      dueDate: "",
+  function removeTask(task) {
+    removeWithUndo({
+      label: task.title,
+      remove: () => setTasks((current) => current.filter((item) => item.id !== task.id)),
+      restore: () => setTasks((current) => [task, ...current]),
+      request: () => api.deleteTask(task.id),
     });
   }
 
-  async function updateTaskStatus(task, status) {
-    try {
-      await api.updateTask(task.id, { status });
-    } catch {
-      // Local optimistic update in demo mode.
-    }
-
-    setTasks((current) =>
-      current.map((item) => (item.id === task.id ? { ...item, status } : item)),
-    );
-  }
-
-  async function removeTask(task) {
-    try {
-      await api.deleteTask(task.id);
-    } catch {
-      // Local optimistic delete in demo mode.
-    }
-
-    setTasks((current) => current.filter((item) => item.id !== task.id));
-    toast.info("Tarefa removida.");
+  function removeEvent(item) {
+    removeWithUndo({
+      label: item.title,
+      remove: () => setEvents((current) => current.filter((entry) => entry.id !== item.id)),
+      restore: () => setEvents((current) => [item, ...current]),
+      request: () => api.deleteEvent(item.id),
+    });
   }
 
   async function createEvent(event) {
     event.preventDefault();
+    const payload = { ...eventForm, endDate: eventForm.endDate || plusOneHour(eventForm.startDate) };
 
     try {
-      const created = await api.createEvent(eventForm);
+      const created = await persist(() => api.createEvent(payload), () => ({ ...payload, id: Date.now() }));
       setEvents((current) => [created, ...current]);
     } catch {
-      setEvents((current) => [{ ...eventForm, id: Date.now() }, ...current]);
+      return;
     }
 
     toast.success("Evento criado!");
     setEventModal(false);
-    setEventForm({ title: "", description: "", startDate: "", endDate: "" });
+    setEventForm(emptyEventForm);
   }
 
   return (
     <PageShell
       title="Agenda e rotina"
-      subtitle="Organize tarefas, acompanhe compromissos e veja quanto seu planejamento pode renderizar no futuro."
+      subtitle="Organize tarefas, acompanhe compromissos e veja quanto seu planejamento pode render no futuro."
       actions={
         <>
           <motion.button
@@ -158,7 +201,7 @@ export default function Produtividade() {
           </motion.button>
           <motion.button
             whileTap={{ scale: 0.98 }}
-            onClick={() => setTaskModal(true)}
+            onClick={openNewTask}
             className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/20 transition hover:bg-terracotta-500"
           >
             <Plus size={18} />
@@ -171,6 +214,10 @@ export default function Produtividade() {
         <StatCard
           title="A fazer"
           value={tasks.filter((task) => task.status === "A Fazer").length}
+          detail={(() => {
+            const late = tasks.filter((task) => task.status !== "Concluído" && task.dueDate && dateKey(task.dueDate) < today).length;
+            return late ? `${late} atrasada(s)` : "Nenhuma atrasada";
+          })()}
           icon={Clock3}
           tone="amber"
         />
@@ -190,78 +237,124 @@ export default function Produtividade() {
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[1.35fr_0.95fr]">
         <section className="grid gap-4 md:grid-cols-3">
-          {statuses.map((status) => (
-            <div
-              key={status}
-              className="rounded-2xl border border-stone-200 bg-white/75 p-4 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70"
-            >
-              <h3 className="mb-4 text-sm font-semibold text-stone-950 dark:text-white">
-                {status}
-              </h3>
-              <div className="space-y-3">
-                {sortedTasks.filter((task) => task.status === status).length === 0 && (
-                  <p className="rounded-2xl bg-terracotta-50/60 px-3 py-5 text-center text-xs text-stone-500 dark:bg-white/5 dark:text-stone-400">
-                    Nada por aqui.
-                  </p>
-                )}
-                {sortedTasks
-                  .filter((task) => task.status === status)
-                  .map((task) => {
+          {statuses.map((status) => {
+            const column = sortedTasks.filter((task) => task.status === status);
+            return (
+              <div
+                key={status}
+                className="rounded-2xl border border-stone-200 bg-white/75 p-4 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70"
+              >
+                <h3 className="mb-4 flex items-center justify-between text-sm font-semibold text-stone-950 dark:text-white">
+                  {status}
+                  <span className="rounded-full bg-stone-500/10 px-2 py-0.5 text-xs text-stone-500">{column.length}</span>
+                </h3>
+                <div className="space-y-3">
+                  {column.length === 0 && (
+                    <p className="rounded-2xl bg-terracotta-50/60 px-3 py-5 text-center text-xs text-stone-500 dark:bg-white/5 dark:text-stone-400">
+                      Nada por aqui.
+                    </p>
+                  )}
+                  {column.map((task) => {
                     const style = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.Média;
+                    const due = dateKey(task.dueDate);
+                    const done = task.status === "Concluído";
+                    const late = due && due < today && !done;
 
                     return (
-                    <motion.article
-                      key={task.id}
-                      layout
-                      whileHover={{ scale: 1.01 }}
-                      className={`rounded-2xl border border-l-4 border-stone-200 bg-stone-50 p-4 dark:border-stone-800 ${style.border} dark:bg-stone-950`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-medium text-stone-950 dark:text-white">
-                            {task.title}
-                          </p>
-                          {task.description && (
-                            <p className="mt-1 text-xs text-stone-500">
-                              {task.description}
-                            </p>
-                          )}
-                          <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${style.badge}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-                            {task.priority}
-                          </span>
-                        </div>
-                        <button
-                          onClick={() => removeTask(task)}
-                          className="text-stone-400 hover:text-rose-500"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                      <select
-                        value={task.status}
-                        onChange={(event) =>
-                          updateTaskStatus(task, event.target.value)
-                        }
-                        className="input-control mt-3"
+                      <motion.article
+                        key={task.id}
+                        layout
+                        whileHover={{ scale: 1.01 }}
+                        className={`rounded-2xl border border-l-4 border-stone-200 bg-stone-50 p-4 dark:border-stone-800 ${style.border} dark:bg-stone-950 ${done ? "opacity-70" : ""}`}
                       >
-                        {statuses.map((option) => (
-                          <option key={option}>{option}</option>
-                        ))}
-                      </select>
-                    </motion.article>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className={`font-medium text-stone-950 dark:text-white ${done ? "line-through decoration-stone-400" : ""}`}>
+                              {task.title}
+                            </p>
+                            {task.description && (
+                              <p className="mt-1 text-xs text-stone-500">
+                                {task.description}
+                              </p>
+                            )}
+                            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${style.badge}`}>
+                                <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
+                                {task.priority}
+                              </span>
+                              {due && (
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs ${
+                                    late ? "bg-rose-500/10 font-semibold text-rose-500" : "bg-stone-500/10 text-stone-500"
+                                  }`}
+                                >
+                                  <Clock3 size={11} />
+                                  {late ? "Atrasada · " : ""}
+                                  {relativeDay(due)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 gap-1">
+                            <button onClick={() => openEditTask(task)} className="rounded-lg p-1 text-stone-400 hover:text-terracotta-500" title="Editar tarefa">
+                              <Pencil size={15} />
+                            </button>
+                            <button onClick={() => removeTask(task)} className="rounded-lg p-1 text-stone-400 hover:text-rose-500" title="Excluir tarefa">
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                          {task.status === "A Fazer" && (
+                            <button
+                              onClick={() => updateTask(task, { status: "Em Andamento" })}
+                              className="flex-1 rounded-xl bg-terracotta-500/10 px-3 py-2 text-xs font-semibold text-terracotta-600 transition hover:bg-terracotta-500/20 dark:text-terracotta-400"
+                            >
+                              Começar
+                            </button>
+                          )}
+                          {done ? (
+                            <button
+                              onClick={() => updateTask(task, { status: "A Fazer" })}
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-stone-500/10 px-3 py-2 text-xs font-semibold text-stone-500 transition hover:bg-stone-500/20"
+                            >
+                              <RotateCcw size={14} />
+                              Reabrir
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => updateTask(task, { status: "Concluído" })}
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-500 transition hover:bg-emerald-500/20"
+                            >
+                              <CheckCircle2 size={14} />
+                              Concluir
+                            </button>
+                          )}
+                        </div>
+                      </motion.article>
                     );
                   })}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </section>
 
         <div className="space-y-5">
           <section className="rounded-2xl border border-stone-200 bg-white/75 p-5 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70">
-            <div className="mb-4 flex items-center gap-2 text-stone-950 dark:text-white">
-              <CalendarClock size={18} />
-              <h3 className="text-sm font-semibold">Próximos compromissos</h3>
+            <div className="mb-4 flex items-center justify-between gap-2 text-stone-950 dark:text-white">
+              <div className="flex items-center gap-2">
+                <CalendarClock size={18} />
+                <h3 className="text-sm font-semibold">{showPastEvents ? "Todos os compromissos" : "Próximos compromissos"}</h3>
+              </div>
+              {pastEventsCount > 0 && (
+                <button
+                  onClick={() => setShowPastEvents((value) => !value)}
+                  className="text-xs font-semibold text-terracotta-600 hover:underline dark:text-terracotta-400"
+                >
+                  {showPastEvents ? "Só os próximos" : `Ver passados (${pastEventsCount})`}
+                </button>
+              )}
             </div>
             <div className="space-y-3">
               {nextEvents.length === 0 && (
@@ -270,16 +363,21 @@ export default function Produtividade() {
                 </p>
               )}
               {nextEvents.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-2xl bg-stone-100 p-4 dark:bg-stone-950"
-                >
-                  <p className="font-medium text-stone-950 dark:text-white">
-                    {item.title}
-                  </p>
-                  <span className="mt-1 block text-xs text-stone-500">
-                    {new Date(item.startDate).toLocaleString("pt-BR")}
-                  </span>
+                <div key={item.id} className="group flex items-start justify-between gap-3 rounded-2xl bg-stone-100 p-4 dark:bg-stone-950">
+                  <div className="min-w-0">
+                    <p className="font-medium text-stone-950 dark:text-white">{item.title}</p>
+                    <span className="mt-1 block text-xs capitalize text-stone-500">
+                      {eventTime.format(new Date(item.startDate)).replace(/\./g, "")}
+                    </span>
+                    {item.description && <p className="mt-1 text-xs text-stone-500">{item.description}</p>}
+                  </div>
+                  <button
+                    onClick={() => removeEvent(item)}
+                    className="shrink-0 rounded-lg p-1 text-stone-400 transition hover:text-rose-500"
+                    title="Excluir evento"
+                  >
+                    <Trash2 size={15} />
+                  </button>
                 </div>
               ))}
             </div>
@@ -296,12 +394,7 @@ export default function Produtividade() {
                   type="number"
                   min="0"
                   value={forecastForm.monthlyContribution}
-                  onChange={(event) =>
-                    setForecastForm({
-                      ...forecastForm,
-                      monthlyContribution: event.target.value,
-                    })
-                  }
+                  onChange={(event) => setForecastForm({ ...forecastForm, monthlyContribution: event.target.value })}
                   className="input-control"
                   placeholder="200"
                 />
@@ -311,12 +404,7 @@ export default function Produtividade() {
                   type="number"
                   min="1"
                   value={forecastForm.months}
-                  onChange={(event) =>
-                    setForecastForm({
-                      ...forecastForm,
-                      months: event.target.value,
-                    })
-                  }
+                  onChange={(event) => setForecastForm({ ...forecastForm, months: event.target.value })}
                   className="input-control"
                   placeholder="12"
                 />
@@ -327,12 +415,7 @@ export default function Produtividade() {
                   min="0"
                   step="0.1"
                   value={forecastForm.monthlyRate}
-                  onChange={(event) =>
-                    setForecastForm({
-                      ...forecastForm,
-                      monthlyRate: event.target.value,
-                    })
-                  }
+                  onChange={(event) => setForecastForm({ ...forecastForm, monthlyRate: event.target.value })}
                   className="input-control"
                   placeholder="0,8"
                 />
@@ -347,28 +430,22 @@ export default function Produtividade() {
                 {currency.format(forecast.finalBalance)}
               </p>
               <p className="mt-2 text-sm">
-                Você contribuiu com {currency.format(forecast.totalContributed)}{" "}
-                em {forecastForm.months || 0} meses e o saldo estimado chega a{" "}
-                {currency.format(forecast.finalBalance)}.
+                Você contribui com {currency.format(forecast.totalContributed)} em {forecastForm.months || 0} meses e os juros
+                somam {currency.format(Math.max(0, forecast.finalBalance - forecast.totalContributed))}.
               </p>
             </div>
           </section>
         </div>
       </div>
 
-      <Modal
-        open={taskModal}
-        title="Nova tarefa"
-        onClose={() => setTaskModal(false)}
-      >
-        <form onSubmit={createTask} className="grid gap-3">
+      <Modal open={taskModal} title={editingTaskId ? "Editar tarefa" : "Nova tarefa"} onClose={closeTaskModal}>
+        <form onSubmit={submitTask} className="grid gap-3">
           <Field label="Título">
             <input
               required
+              autoFocus
               value={taskForm.title}
-              onChange={(event) =>
-                setTaskForm({ ...taskForm, title: event.target.value })
-              }
+              onChange={(event) => setTaskForm({ ...taskForm, title: event.target.value })}
               className="input-control"
               placeholder="Ex: Revisar orçamento do mês"
             />
@@ -376,9 +453,7 @@ export default function Produtividade() {
           <Field label="Descrição">
             <textarea
               value={taskForm.description}
-              onChange={(event) =>
-                setTaskForm({ ...taskForm, description: event.target.value })
-              }
+              onChange={(event) => setTaskForm({ ...taskForm, description: event.target.value })}
               className="input-control min-h-24"
               placeholder="Detalhes da tarefa (opcional)"
             />
@@ -387,9 +462,7 @@ export default function Produtividade() {
             <Field label="Status">
               <select
                 value={taskForm.status}
-                onChange={(event) =>
-                  setTaskForm({ ...taskForm, status: event.target.value })
-                }
+                onChange={(event) => setTaskForm({ ...taskForm, status: event.target.value })}
                 className="input-control"
               >
                 {statuses.map((status) => (
@@ -400,9 +473,7 @@ export default function Produtividade() {
             <Field label="Prioridade">
               <select
                 value={taskForm.priority}
-                onChange={(event) =>
-                  setTaskForm({ ...taskForm, priority: event.target.value })
-                }
+                onChange={(event) => setTaskForm({ ...taskForm, priority: event.target.value })}
                 className="input-control"
               >
                 <option value="Baixa">🟢 Baixa</option>
@@ -411,32 +482,23 @@ export default function Produtividade() {
               </select>
             </Field>
             <Field label="Prazo">
-              <Calendar
-                value={taskForm.dueDate}
-                onChange={(date) => setTaskForm({ ...taskForm, dueDate: date })}
-                placeholder="Opcional"
-              />
+              <Calendar value={taskForm.dueDate} onChange={(date) => setTaskForm({ ...taskForm, dueDate: date })} placeholder="Opcional" />
             </Field>
           </div>
           <button className="rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">
-            Salvar tarefa
+            {editingTaskId ? "Salvar alterações" : "Salvar tarefa"}
           </button>
         </form>
       </Modal>
 
-      <Modal
-        open={eventModal}
-        title="Novo evento"
-        onClose={() => setEventModal(false)}
-      >
+      <Modal open={eventModal} title="Novo evento" onClose={() => setEventModal(false)}>
         <form onSubmit={createEvent} className="grid gap-3">
           <Field label="Título">
             <input
               required
+              autoFocus
               value={eventForm.title}
-              onChange={(event) =>
-                setEventForm({ ...eventForm, title: event.target.value })
-              }
+              onChange={(event) => setEventForm({ ...eventForm, title: event.target.value })}
               className="input-control"
               placeholder="Ex: Consulta, reunião..."
             />
@@ -444,33 +506,34 @@ export default function Produtividade() {
           <Field label="Descrição">
             <textarea
               value={eventForm.description}
-              onChange={(event) =>
-                setEventForm({ ...eventForm, description: event.target.value })
-              }
+              onChange={(event) => setEventForm({ ...eventForm, description: event.target.value })}
               className="input-control min-h-24"
               placeholder="Detalhes do compromisso (opcional)"
             />
           </Field>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Início">
               <input
                 required
                 type="datetime-local"
                 value={eventForm.startDate}
                 onChange={(event) =>
-                  setEventForm({ ...eventForm, startDate: event.target.value })
+                  setEventForm({
+                    ...eventForm,
+                    startDate: event.target.value,
+                    // Fim padrão: 1h depois do início
+                    endDate: !eventForm.endDate || eventForm.endDate <= event.target.value ? plusOneHour(event.target.value) : eventForm.endDate,
+                  })
                 }
                 className="input-control"
               />
             </Field>
             <Field label="Fim">
               <input
-                required
                 type="datetime-local"
+                min={eventForm.startDate}
                 value={eventForm.endDate}
-                onChange={(event) =>
-                  setEventForm({ ...eventForm, endDate: event.target.value })
-                }
+                onChange={(event) => setEventForm({ ...eventForm, endDate: event.target.value })}
                 className="input-control"
               />
             </Field>

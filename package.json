@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test src/utils/finance.test.js src/utils/forecast.test.js"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",

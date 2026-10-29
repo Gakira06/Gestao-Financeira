@@ -23,7 +23,7 @@ export default function Modal({ open, title, children, onClose }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           onClick={onClose}
-          className="print:hidden fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 p-4 backdrop-blur-sm"
+          className="print:hidden fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-stone-950/70 p-3 backdrop-blur-sm sm:p-4"
         >
           <motion.div
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -31,11 +31,13 @@ export default function Modal({ open, title, children, onClose }) {
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.22, ease: 'easeOut' }}
             onClick={(event) => event.stopPropagation()}
-            className="w-full max-w-xl rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-stone-800 dark:bg-stone-950"
+            className="my-auto w-full max-w-xl rounded-2xl border border-stone-200 bg-white p-5 shadow-2xl dark:border-stone-800 dark:bg-stone-950"
           >
             <div className="mb-5 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-stone-950 dark:text-white">{title}</h3>
               <button
+                type="button"
+                aria-label="Fechar"
                 onClick={onClose}
                 className="rounded-xl p-2 text-stone-500 transition hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-stone-900 dark:hover:text-white"
               >

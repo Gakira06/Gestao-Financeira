@@ -13,7 +13,8 @@ const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 const emptyWalletForm = { name: '', type: 'Corrente', balance: '' };
 
 export default function Cadastros() {
-  const { wallets, setWallets, categories, setCategories } = useApp();
+  const { wallets, setWallets, categories, setCategories, transactions, persist } = useApp();
+  const totalBalance = wallets.reduce((total, wallet) => total + Number(wallet.balance), 0);
   const [walletModal, setWalletModal] = useState(false);
   const [categoryModal, setCategoryModal] = useState(false);
   const [editingWalletId, setEditingWalletId] = useState(null);
@@ -57,6 +58,12 @@ export default function Cadastros() {
   }
 
   async function removeWallet(wallet) {
+    const linked = transactions.filter((item) => Number(item.walletId) === Number(wallet.id)).length;
+    const message = linked
+      ? `Excluir a conta "${wallet.name}"? Ela tem ${linked} transação(ões) vinculada(s).`
+      : `Excluir a conta "${wallet.name}"?`;
+    if (!window.confirm(message)) return;
+
     try {
       await api.deleteWallet(wallet.id);
       setWallets((current) => current.filter((item) => item.id !== wallet.id));
@@ -70,10 +77,10 @@ export default function Cadastros() {
     event.preventDefault();
 
     try {
-      const created = await api.createCategory(categoryForm);
+      const created = await persist(() => api.createCategory(categoryForm), () => ({ ...categoryForm, id: Date.now() }));
       setCategories((current) => [...current, created]);
     } catch {
-      setCategories((current) => [...current, { ...categoryForm, id: Date.now() }]);
+      return;
     }
 
     toast.success('Categoria cadastrada!');
@@ -99,7 +106,7 @@ export default function Cadastros() {
       }
     >
       <div className="grid gap-4 md:grid-cols-2">
-        <StatCard title="Contas cadastradas" value={wallets.length} detail="Bancos, reservas e cartões" icon={Landmark} tone="terracotta" />
+        <StatCard title="Contas cadastradas" value={wallets.length} detail={`Somam ${currency.format(totalBalance)}`} icon={Landmark} tone="terracotta" />
         <StatCard title="Categorias ativas" value={categories.length} detail="Receitas e despesas" icon={Tags} tone="emerald" />
       </div>
 

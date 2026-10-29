@@ -1,11 +1,11 @@
-import { ChevronLeft, ChevronRight, Printer, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Printer, Search, X } from 'lucide-react';
 import Calendar from './Calendar';
 
 const caption = 'mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-400 dark:text-stone-500';
 
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
 
-export default function FinanceToolbar({ filters, setFilters, wallets, categories, onPrint }) {
+export default function FinanceToolbar({ filters, setFilters, wallets, categories, onPrint, onExport }) {
   function shiftMonth(direction) {
     const date = new Date(filters.year, filters.month - 1 + direction, 1);
     setFilters((current) => ({
@@ -19,6 +19,11 @@ export default function FinanceToolbar({ filters, setFilters, wallets, categorie
 
   function updateField(field, value) {
     setFilters((current) => ({ ...current, [field]: value }));
+  }
+
+  const hasFilters = filters.startDate || filters.endDate || filters.walletId || filters.categoryId || filters.status !== 'Todos' || filters.search;
+  function clearFilters() {
+    setFilters((current) => ({ ...current, startDate: '', endDate: '', walletId: '', categoryId: '', status: 'Todos', search: '' }));
   }
 
   return (
@@ -97,10 +102,22 @@ export default function FinanceToolbar({ filters, setFilters, wallets, categorie
           </label>
         </div>
 
-        <button onClick={onPrint} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white shadow-lg shadow-terracotta-600/20 transition hover:bg-terracotta-500">
-          <Printer size={17} />
-          Imprimir
-        </button>
+        <div className="flex gap-2">
+          {hasFilters && (
+            <button onClick={clearFilters} className="inline-flex items-center justify-center gap-1.5 rounded-2xl px-3 py-2 text-sm font-semibold whitespace-nowrap text-stone-500 transition hover:bg-stone-100 hover:text-stone-900 dark:hover:bg-white/5 dark:hover:text-white">
+              <X size={16} />
+              Limpar
+            </button>
+          )}
+          <button onClick={onExport} title="Baixar planilha (CSV)" className="inline-flex items-center justify-center gap-2 rounded-2xl border border-stone-200 px-3 py-2 text-sm font-semibold whitespace-nowrap text-stone-700 transition hover:bg-stone-100 dark:border-stone-800 dark:text-stone-200 dark:hover:bg-white/5">
+            <Download size={17} />
+            CSV
+          </button>
+          <button onClick={onPrint} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-2 text-sm font-semibold whitespace-nowrap text-white shadow-lg shadow-terracotta-600/20 transition hover:bg-terracotta-500">
+            <Printer size={17} />
+            Imprimir
+          </button>
+        </div>
       </div>
     </div>
   );

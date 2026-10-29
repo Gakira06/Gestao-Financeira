@@ -1,155 +1,113 @@
 import { motion } from 'framer-motion';
-import { Plus, ReceiptText, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
+import { AlertTriangle, PieChart, Plus, Scale, TrendingDown, TrendingUp } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'react-toastify';
-import Calendar from '../components/Calendar';
-import Field from '../components/Field';
+import { useSearchParams } from 'react-router-dom';
+import CategoryBreakdown from '../components/CategoryBreakdown';
 import FinanceToolbar from '../components/FinanceToolbar';
-import Modal from '../components/Modal';
 import PageShell from '../components/PageShell';
 import StatCard from '../components/StatCard';
 import TransactionTable from '../components/TransactionTable';
 import { useApp } from '../contexts/useApp';
 import { api, buildTransactionQuery } from '../services/api';
-import { fallbackTransactions } from '../services/mockData';
+import { byCategory, dateKey, exportCSV, formatMoney, inMonth, normalize, summarize } from '../utils/finance';
 
-const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
 
-function initialFilters() {
+function initialFilters(params) {
   const now = new Date();
   return {
     month: now.getMonth() + 1,
     year: now.getFullYear(),
     startDate: '',
     endDate: '',
-    walletId: '',
-    categoryId: '',
-    status: 'Todos',
+    walletId: params.get('conta') || '',
+    categoryId: params.get('categoria') || '',
+    status: params.get('status') || 'Todos',
     search: '',
   };
 }
 
 export default function Financeiro() {
-  const { wallets, categories, transactions, setTransactions, refreshBaseData } = useApp();
-  const [filters, setFilters] = useState(initialFilters);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const { wallets, categories, transactions, setTransactions, markPaid, removeWithUndo, openTransactionForm } = useApp();
+  const [params] = useSearchParams();
+  const [filters, setFilters] = useState(() => initialFilters(params));
   const [payingId, setPayingId] = useState(null);
-  const [form, setForm] = useState({
-    description: '',
-    amount: '',
-    type: 'Despesa',
-    walletId: '',
-    categoryId: '',
-    dueDate: '',
-    status: 'Pendente',
-  });
 
+  // Busca o período no servidor e mescla com o que já temos, sem apagar os outros meses
+  const periodQuery = JSON.stringify({ month: filters.month, year: filters.year, startDate: filters.startDate, endDate: filters.endDate });
   useEffect(() => {
-    const query = buildTransactionQuery(filters);
-
-    api.getTransactions(query)
-      .then(setTransactions)
+    const { month, year, startDate, endDate } = JSON.parse(periodQuery);
+    api
+      .getTransactions(buildTransactionQuery({ month, year, startDate, endDate, status: 'Todos' }))
+      .then((data) => {
+        setTransactions((current) => {
+          const byId = new Map(current.map((item) => [item.id, item]));
+          for (const item of data) byId.set(item.id, item);
+          return [...byId.values()];
+        });
+      })
       .catch(() => {
-        setTransactions(fallbackTransactions);
+        // Sem API: seguimos com os dados já carregados
       });
-  }, [filters, setTransactions]);
+  }, [periodQuery, setTransactions]);
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((item) => {
-      const dueDate = new Date(item.dueDate);
-      const sameMonth = dueDate.getMonth() + 1 === Number(filters.month) && dueDate.getFullYear() === Number(filters.year);
-      const afterStart = filters.startDate ? dueDate >= new Date(`${filters.startDate}T00:00:00`) : true;
-      const beforeEnd = filters.endDate ? dueDate <= new Date(`${filters.endDate}T23:59:59`) : true;
-      const walletMatch = filters.walletId ? Number(item.walletId) === Number(filters.walletId) : true;
-      const categoryMatch = filters.categoryId ? Number(item.categoryId) === Number(filters.categoryId) : true;
-      const statusMatch = filters.status === 'Todos' ? true : item.status === filters.status;
-      const searchMatch = item.description.toLowerCase().includes(filters.search.toLowerCase());
-
-      return (filters.startDate || filters.endDate || sameMonth) && afterStart && beforeEnd && walletMatch && categoryMatch && statusMatch && searchMatch;
-    });
+    const search = normalize(filters.search);
+    return transactions
+      .filter((item) => {
+        const key = dateKey(item.dueDate);
+        const inPeriod = filters.startDate || filters.endDate
+          ? (!filters.startDate || key >= filters.startDate) && (!filters.endDate || key <= filters.endDate)
+          : inMonth(item, filters.month, filters.year);
+        const walletMatch = filters.walletId ? Number(item.walletId) === Number(filters.walletId) : true;
+        const categoryMatch = filters.categoryId ? Number(item.categoryId) === Number(filters.categoryId) : true;
+        const statusMatch = filters.status === 'Todos' ? true : item.status === filters.status;
+        const searchMatch = !search || normalize(item.description).includes(search) || String(item.amount).includes(filters.search.replace(',', '.'));
+        return inPeriod && walletMatch && categoryMatch && statusMatch && searchMatch;
+      })
+      .sort((a, b) => dateKey(b.dueDate).localeCompare(dateKey(a.dueDate)) || b.id - a.id);
   }, [transactions, filters]);
 
-  const totals = useMemo(() => {
-    return filteredTransactions.reduce(
-      (acc, item) => {
-        const amount = Number(item.amount);
-        const isSettled = item.status === 'Efetivado';
-
-        if (item.type === 'Receita' && isSettled) acc.income += amount;
-        if (item.type === 'Despesa' && isSettled) acc.expense += amount;
-        if (!isSettled) acc.pending += amount;
-        return acc;
-      },
-      { income: 0, expense: 0, pending: 0 },
-    );
-  }, [filteredTransactions]);
+  const totals = summarize(filteredTransactions);
+  const categoryData = byCategory(filteredTransactions, categories);
 
   async function handlePay(transaction) {
     setPayingId(transaction.id);
-
-    try {
-      await api.payTransaction(transaction.id);
-    } catch {
-      // Keeps the interaction responsive in demo mode.
-    }
-
-    setTimeout(() => {
-      setTransactions((current) => current.map((item) => item.id === transaction.id ? { ...item, status: 'Efetivado', paymentDate: new Date().toISOString() } : item));
-      setPayingId(null);
-      refreshBaseData();
-      toast.success('Transação baixada!');
-    }, 420);
+    await markPaid(transaction);
+    setPayingId(null);
   }
 
-  async function handleDelete(transaction) {
-    try {
-      await api.deleteTransaction(transaction.id);
-    } catch {
-      // Demo mode removes locally when the backend is unavailable.
-    }
-
-    setTransactions((current) => current.filter((item) => item.id !== transaction.id));
-    refreshBaseData();
-    toast.info('Transação removida.');
+  function handleDelete(transaction) {
+    removeWithUndo({
+      label: transaction.description,
+      remove: () => setTransactions((current) => current.filter((item) => item.id !== transaction.id)),
+      restore: () => setTransactions((current) => [transaction, ...current]),
+      request: () => api.deleteTransaction(transaction.id),
+    });
   }
 
-  async function handleCreate(event) {
-    event.preventDefault();
-
-    if (!form.dueDate) {
-      toast.error('Selecione a data de vencimento.');
-      return;
-    }
-
-    const payload = {
-      ...form,
-      walletId: Number(form.walletId),
-      categoryId: Number(form.categoryId),
-      amount: Number(form.amount),
-    };
-
-    try {
-      const created = await api.createTransaction(payload);
-      setTransactions((current) => [created, ...current]);
-      refreshBaseData();
-    } catch {
-      setTransactions((current) => [{ ...payload, id: Date.now(), paymentDate: payload.status === 'Efetivado' ? new Date().toISOString() : null }, ...current]);
-    }
-
-    toast.success('Transação cadastrada!');
-    setIsModalOpen(false);
-    setForm({ description: '', amount: '', type: 'Despesa', walletId: '', categoryId: '', dueDate: '', status: 'Pendente' });
+  function handleDuplicate(transaction) {
+    openTransactionForm({
+      title: 'Duplicar transação',
+      description: transaction.description.replace(/\s*\(\d+\/\d+\)\s*$/, ''),
+      amount: transaction.amount,
+      type: transaction.type,
+      walletId: transaction.walletId,
+      categoryId: transaction.categoryId,
+    });
   }
 
-  const printTitle = `Relatório Financeiro Pessoal - Competência: ${monthFormatter.format(new Date(filters.year, filters.month - 1, 1))}`;
+  const periodLabel = filters.startDate || filters.endDate
+    ? 'Período personalizado'
+    : monthFormatter.format(new Date(filters.year, filters.month - 1, 1));
+  const printTitle = `Relatório Financeiro Pessoal - Competência: ${periodLabel}`;
 
   return (
     <PageShell
       title="Finanças"
-      subtitle="Extrato vivo com filtros avançados, baixa de pendências e impressão profissional."
+      subtitle="Extrato vivo com filtros, baixa de pendências, exportação e impressão."
       actions={
-        <motion.button whileTap={{ scale: 0.98 }} onClick={() => setIsModalOpen(true)} className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/25 transition hover:bg-terracotta-500">
+        <motion.button whileTap={{ scale: 0.98 }} onClick={() => openTransactionForm()} className="inline-flex items-center gap-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/25 transition hover:bg-terracotta-500">
           <Plus size={18} />
           Nova transação
         </motion.button>
@@ -160,64 +118,43 @@ export default function Financeiro() {
       </div>
 
       <div className="print:hidden grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard title="Receitas filtradas" value={currency.format(totals.income)} icon={TrendingUp} tone="emerald" />
-        <StatCard title="Despesas filtradas" value={currency.format(totals.expense)} icon={TrendingDown} tone="rose" />
-        <StatCard title="Pendências" value={currency.format(totals.pending)} icon={ReceiptText} tone="amber" />
-        <StatCard title="Contas" value={wallets.length} icon={Wallet} tone="terracotta" />
+        <StatCard title="Receitas" value={formatMoney(totals.income)} detail={totals.receivable ? `${formatMoney(totals.receivable)} ainda a receber` : 'Tudo recebido'} icon={TrendingUp} tone="emerald" />
+        <StatCard title="Despesas" value={formatMoney(totals.expense)} detail={totals.payable ? `${formatMoney(totals.payable)} ainda a pagar` : 'Tudo pago'} icon={TrendingDown} tone="rose" />
+        <StatCard title="Resultado" value={formatMoney(totals.income - totals.expense)} detail={totals.income ? `${(((totals.income - totals.expense) / totals.income) * 100).toFixed(0)}% da renda sobrando` : 'Receitas menos despesas'} icon={Scale} tone="terracotta" />
+        <StatCard title="Atrasadas" value={totals.overdue} detail={totals.overdue ? 'Venceram e não foram baixadas' : 'Nenhuma conta atrasada'} icon={AlertTriangle} tone="amber" />
       </div>
 
       <div className="mt-5">
-        <FinanceToolbar filters={filters} setFilters={setFilters} wallets={wallets} categories={categories} onPrint={() => window.print()} />
+        <FinanceToolbar
+          filters={filters}
+          setFilters={setFilters}
+          wallets={wallets}
+          categories={categories}
+          onPrint={() => window.print()}
+          onExport={() => exportCSV(filteredTransactions, { wallets, categories }, `financas-${filters.year}-${String(filters.month).padStart(2, '0')}`)}
+        />
       </div>
 
-      <div className="mt-5 overflow-x-auto">
-        <TransactionTable transactions={filteredTransactions} wallets={wallets} categories={categories} onPay={handlePay} onDelete={handleDelete} payingId={payingId} />
+      <div className="mt-5 grid gap-5">
+        <div className="min-w-0 overflow-x-auto">
+          <TransactionTable
+            transactions={filteredTransactions}
+            wallets={wallets}
+            categories={categories}
+            onPay={handlePay}
+            onDelete={handleDelete}
+            onDuplicate={handleDuplicate}
+            payingId={payingId}
+          />
+        </div>
+        <section className="print:hidden rounded-2xl border border-stone-200 bg-white/75 p-5 backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70">
+          <div className="mb-4 flex items-center gap-2 text-stone-950 dark:text-white">
+            <PieChart size={18} />
+            <h3 className="text-sm font-semibold">Despesas por categoria</h3>
+          </div>
+          <CategoryBreakdown data={categoryData} emptyText="Sem despesas com esses filtros." />
+        </section>
       </div>
-
-      <Modal open={isModalOpen} title="Nova transação" onClose={() => setIsModalOpen(false)}>
-        <form onSubmit={handleCreate} className="grid gap-3">
-          <Field label="Descrição">
-            <input required value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} className="input-control" placeholder="Ex: Aluguel, salário, mercado..." />
-          </Field>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Field label="Valor (R$)">
-              <input required type="number" min="0.01" step="0.01" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} className="input-control" placeholder="0,00" />
-            </Field>
-            <Field label="Vencimento">
-              <Calendar value={form.dueDate} onChange={(date) => setForm({ ...form, dueDate: date })} placeholder="Escolher data" />
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Tipo">
-              <select value={form.type} onChange={(event) => setForm({ ...form, type: event.target.value, categoryId: '' })} className="input-control">
-                <option>Despesa</option>
-                <option>Receita</option>
-              </select>
-            </Field>
-            <Field label="Status">
-              <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="input-control">
-                <option>Pendente</option>
-                <option>Efetivado</option>
-              </select>
-            </Field>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Conta">
-              <select required value={form.walletId} onChange={(event) => setForm({ ...form, walletId: event.target.value })} className="input-control">
-                <option value="">Selecionar conta</option>
-                {wallets.map((wallet) => <option key={wallet.id} value={wallet.id}>{wallet.name}</option>)}
-              </select>
-            </Field>
-            <Field label="Categoria">
-              <select required value={form.categoryId} onChange={(event) => setForm({ ...form, categoryId: event.target.value })} className="input-control">
-                <option value="">Selecionar categoria</option>
-                {categories.filter((category) => category.type === form.type).map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-              </select>
-            </Field>
-          </div>
-          <button className="mt-2 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-terracotta-500">Salvar transação</button>
-        </form>
-      </Modal>
     </PageShell>
   );
 }

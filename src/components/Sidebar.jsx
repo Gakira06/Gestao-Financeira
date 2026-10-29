@@ -1,23 +1,11 @@
 import { motion } from "framer-motion";
-import {
-  BarChart3,
-  CalendarCheck,
-  CreditCard,
-  Database,
-  Moon,
-  Sun,
-} from "lucide-react";
+import { BarChart3, Moon, Plus, Sun } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { useApp } from "../contexts/useApp";
+import { navItems } from "./navItems";
 
-const items = [
-  { id: "dashboard", label: "Dashboard", icon: BarChart3 },
-  { id: "produtividade", label: "Rotina", icon: CalendarCheck },
-  { id: "financeiro", label: "Finanças", icon: CreditCard },
-  { id: "cadastros", label: "Cadastros", icon: Database },
-];
-
-export default function Sidebar({ activePage, onChange }) {
-  const { theme, setTheme } = useApp();
+export default function Sidebar() {
+  const { theme, setTheme, openTransactionForm } = useApp();
 
   return (
     <aside className="print:hidden fixed inset-y-0 left-0 z-30 hidden w-72 border-r border-terracotta-100 bg-white/90 p-6 shadow-lg shadow-terracotta-900/5 backdrop-blur-xl dark:border-white/5 dark:bg-[#1c140f]/90 lg:block">
@@ -34,26 +22,37 @@ export default function Sidebar({ activePage, onChange }) {
           </p>
         </div>
 
+        <motion.button
+          whileHover={{ scale: 1.01 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => openTransactionForm()}
+          className="mb-6 flex w-full items-center gap-3 rounded-3xl border border-terracotta-200 bg-terracotta-50 px-4 py-3 text-left text-sm font-semibold text-terracotta-700 transition hover:bg-terracotta-100 dark:border-terracotta-500/20 dark:bg-terracotta-500/10 dark:text-terracotta-300 dark:hover:bg-terracotta-500/15"
+        >
+          <Plus size={18} />
+          Nova transação
+          <kbd className="ml-auto rounded-lg bg-white/70 px-1.5 text-[11px] font-medium text-stone-500 dark:bg-white/10 dark:text-stone-400">N</kbd>
+        </motion.button>
+
         <nav className="space-y-2">
-          {items.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activePage === item.id;
 
             return (
-              <motion.button
-                key={item.id}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => onChange(item.id)}
-                className={`flex w-full items-center gap-3 rounded-3xl px-4 py-3 text-left text-sm font-semibold transition ${
-                  isActive
-                    ? "bg-terracotta-600 text-white shadow-lg shadow-terracotta-600/25"
-                    : "text-stone-600 hover:bg-terracotta-50 dark:text-stone-300 dark:hover:bg-white/5"
-                }`}
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === "/"}
+                className={({ isActive }) =>
+                  `flex w-full items-center gap-3 rounded-3xl px-4 py-3 text-left text-sm font-semibold transition ${
+                    isActive
+                      ? "bg-terracotta-600 text-white shadow-lg shadow-terracotta-600/25"
+                      : "text-stone-600 hover:bg-terracotta-50 dark:text-stone-300 dark:hover:bg-white/5"
+                  }`
+                }
               >
                 <Icon size={18} />
                 {item.label}
-              </motion.button>
+              </NavLink>
             );
           })}
         </nav>

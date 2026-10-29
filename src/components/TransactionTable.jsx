@@ -1,10 +1,65 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, PiggyBank, Trash2 } from 'lucide-react';
+import { CheckCircle2, Copy, PiggyBank, Trash2 } from 'lucide-react';
+import { dateKey, formatMoney, isOverdue, parseKey } from '../utils/finance';
 
-const currency = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-export default function TransactionTable({ transactions, wallets, categories, onPay, onDelete, payingId }) {
+function StatusBadge({ transaction, isPaying, compact = false }) {
+  const overdue = isOverdue(transaction);
+  const paid = transaction.status === 'Efetivado';
+  const label = paid ? (transaction.type === 'Receita' ? 'Recebido' : 'Pago') : overdue ? 'Atrasada' : 'Pendente';
+  const style = paid ? 'bg-emerald-500/10 text-emerald-500' : overdue ? 'bg-rose-500/10 text-rose-500' : 'bg-amber-500/10 text-amber-500';
+
+  return (
+    <motion.span
+      animate={isPaying ? { backgroundColor: ['rgba(16,185,129,0.12)', 'rgba(16,185,129,0.28)', 'rgba(16,185,129,0.12)'] } : {}}
+      transition={{ duration: 0.45 }}
+      className={`inline-flex rounded-full font-semibold ${compact ? 'px-2.5 py-0.5' : 'px-3 py-1 text-xs'} ${style}`}
+    >
+      {label}
+    </motion.span>
+  );
+}
+
+function Actions({ transaction, onPay, onDelete, onDuplicate, withLabels = false }) {
+  const pending = transaction.status === 'Pendente';
+  const base = `inline-flex items-center gap-1.5 rounded-xl transition ${withLabels ? 'px-3 py-2 text-xs font-semibold' : 'p-2'}`;
+  return (
+    <>
+      {pending && (
+        <motion.button
+          whileTap={{ scale: 0.94 }}
+          onClick={() => onPay(transaction)}
+          title={transaction.type === 'Receita' ? 'Confirmar recebimento' : 'Dar baixa'}
+          className={`${base} bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20`}
+        >
+          <CheckCircle2 size={withLabels ? 16 : 17} />
+          {withLabels && 'Dar baixa'}
+        </motion.button>
+      )}
+      <motion.button
+        whileTap={{ scale: 0.94 }}
+        onClick={() => onDuplicate(transaction)}
+        title="Duplicar"
+        className={`${base} bg-stone-500/10 text-stone-500 hover:bg-stone-500/20 dark:text-stone-300`}
+      >
+        <Copy size={withLabels ? 16 : 17} />
+        {withLabels && 'Duplicar'}
+      </motion.button>
+      <motion.button
+        whileTap={{ scale: 0.94 }}
+        onClick={() => onDelete(transaction)}
+        title="Excluir"
+        className={`${base} bg-rose-500/10 text-rose-500 hover:bg-rose-500/20`}
+      >
+        <Trash2 size={withLabels ? 16 : 17} />
+        {withLabels && 'Excluir'}
+      </motion.button>
+    </>
+  );
+}
+
+export default function TransactionTable({ transactions, wallets, categories, onPay, onDelete, onDuplicate, payingId }) {
   const walletById = new Map(wallets.map((wallet) => [Number(wallet.id), wallet]));
   const categoryById = new Map(categories.map((category) => [Number(category.id), category]));
 
@@ -21,13 +76,12 @@ export default function TransactionTable({ transactions, wallets, categories, on
 
   return (
     <>
-      <div className="sm:hidden space-y-3">
+      <div className="space-y-3 sm:hidden">
         <AnimatePresence initial={false}>
           {transactions.map((transaction) => {
             const wallet = walletById.get(Number(transaction.walletId));
             const category = categoryById.get(Number(transaction.categoryId));
             const isIncome = transaction.type === 'Receita';
-            const isPaying = payingId === transaction.id;
 
             return (
               <motion.div
@@ -37,15 +91,17 @@ export default function TransactionTable({ transactions, wallets, categories, on
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ x: -50, opacity: 0 }}
                 transition={{ duration: 0.24 }}
-                className="rounded-2xl border border-stone-200 bg-white/80 p-4 shadow-sm backdrop-blur-xl dark:border-stone-800 dark:bg-stone-900/70"
+                className={`rounded-2xl border bg-white/80 p-4 shadow-sm backdrop-blur-xl dark:bg-stone-900/70 ${
+                  isOverdue(transaction) ? 'border-rose-300 dark:border-rose-500/30' : 'border-stone-200 dark:border-stone-800'
+                }`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-medium text-stone-950 dark:text-white">{transaction.description}</p>
                     <p className="mt-0.5 text-xs text-stone-500">{wallet?.name || '-'}</p>
                   </div>
-                  <span className={`shrink-0 font-semibold ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
-                    {isIncome ? '+' : '-'} {currency.format(Number(transaction.amount))}
+                  <span className={`shrink-0 font-semibold tabular-nums ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    {isIncome ? '+' : '-'} {formatMoney(transaction.amount)}
                   </span>
                 </div>
 
@@ -55,39 +111,12 @@ export default function TransactionTable({ transactions, wallets, categories, on
                     {category?.name || '-'}
                   </span>
                   <span>•</span>
-                  <span>{dateFormatter.format(new Date(transaction.dueDate))}</span>
-                  <motion.span
-                    animate={isPaying ? { backgroundColor: ['rgba(16,185,129,0.12)', 'rgba(16,185,129,0.28)', 'rgba(16,185,129,0.12)'] } : {}}
-                    transition={{ duration: 0.45 }}
-                    className={`inline-flex rounded-full px-2.5 py-0.5 font-semibold ${
-                      transaction.status === 'Efetivado'
-                        ? 'bg-emerald-500/10 text-emerald-500'
-                        : 'bg-amber-500/10 text-amber-500'
-                    }`}
-                  >
-                    {transaction.status}
-                  </motion.span>
+                  <span>{dateFormatter.format(parseKey(dateKey(transaction.dueDate)))}</span>
+                  <StatusBadge transaction={transaction} isPaying={payingId === transaction.id} compact />
                 </div>
 
                 <div className="mt-3 flex justify-end gap-2">
-                  {transaction.status === 'Pendente' && (
-                    <motion.button
-                      whileTap={{ scale: 0.94 }}
-                      onClick={() => onPay(transaction)}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-500 transition hover:bg-emerald-500/20"
-                    >
-                      <CheckCircle2 size={16} />
-                      Dar baixa
-                    </motion.button>
-                  )}
-                  <motion.button
-                    whileTap={{ scale: 0.94 }}
-                    onClick={() => onDelete(transaction)}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-500 transition hover:bg-rose-500/20"
-                  >
-                    <Trash2 size={16} />
-                    Excluir
-                  </motion.button>
+                  <Actions transaction={transaction} onPay={onPay} onDelete={onDelete} onDuplicate={onDuplicate} withLabels />
                 </div>
               </motion.div>
             );
@@ -114,7 +143,6 @@ export default function TransactionTable({ transactions, wallets, categories, on
                 const wallet = walletById.get(Number(transaction.walletId));
                 const category = categoryById.get(Number(transaction.categoryId));
                 const isIncome = transaction.type === 'Receita';
-                const isPaying = payingId === transaction.id;
 
                 return (
                   <motion.tr
@@ -124,7 +152,7 @@ export default function TransactionTable({ transactions, wallets, categories, on
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ x: -50, opacity: 0 }}
                     transition={{ duration: 0.24 }}
-                    className="text-sm text-stone-700 dark:text-stone-200"
+                    className={`group text-sm text-stone-700 dark:text-stone-200 ${isOverdue(transaction) ? 'bg-rose-500/[0.04]' : ''}`}
                   >
                     <td className="px-4 py-4 font-medium text-stone-950 dark:text-white">{transaction.description}</td>
                     <td className="px-4 py-4">{wallet?.name || '-'}</td>
@@ -134,41 +162,16 @@ export default function TransactionTable({ transactions, wallets, categories, on
                         {category?.name || '-'}
                       </span>
                     </td>
-                    <td className="px-4 py-4">{dateFormatter.format(new Date(transaction.dueDate))}</td>
+                    <td className="px-4 py-4 tabular-nums">{dateFormatter.format(parseKey(dateKey(transaction.dueDate)))}</td>
                     <td className="px-4 py-4">
-                      <motion.span
-                        animate={isPaying ? { backgroundColor: ['rgba(16,185,129,0.12)', 'rgba(16,185,129,0.28)', 'rgba(16,185,129,0.12)'] } : {}}
-                        transition={{ duration: 0.45 }}
-                        className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-                          transaction.status === 'Efetivado'
-                            ? 'bg-emerald-500/10 text-emerald-500'
-                            : 'bg-amber-500/10 text-amber-500'
-                        }`}
-                      >
-                        {transaction.status}
-                      </motion.span>
+                      <StatusBadge transaction={transaction} isPaying={payingId === transaction.id} />
                     </td>
-                    <td className={`px-4 py-4 text-right font-semibold ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {isIncome ? '+' : '-'} {currency.format(Number(transaction.amount))}
+                    <td className={`px-4 py-4 text-right font-semibold tabular-nums ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {isIncome ? '+' : '-'} {formatMoney(transaction.amount)}
                     </td>
                     <td className="print:hidden px-4 py-4">
-                      <div className="flex justify-end gap-2">
-                        {transaction.status === 'Pendente' && (
-                          <motion.button
-                            whileTap={{ scale: 0.94 }}
-                            onClick={() => onPay(transaction)}
-                            className="rounded-xl bg-emerald-500/10 p-2 text-emerald-500 transition hover:bg-emerald-500/20"
-                          >
-                            <CheckCircle2 size={17} />
-                          </motion.button>
-                        )}
-                        <motion.button
-                          whileTap={{ scale: 0.94 }}
-                          onClick={() => onDelete(transaction)}
-                          className="rounded-xl bg-rose-500/10 p-2 text-rose-500 transition hover:bg-rose-500/20"
-                        >
-                          <Trash2 size={17} />
-                        </motion.button>
+                      <div className="flex justify-end gap-2 opacity-70 transition group-hover:opacity-100">
+                        <Actions transaction={transaction} onPay={onPay} onDelete={onDelete} onDuplicate={onDuplicate} />
                       </div>
                     </td>
                   </motion.tr>
