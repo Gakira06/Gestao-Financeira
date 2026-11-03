@@ -1,4 +1,4 @@
-import { CalendarDays, Repeat, Sparkles } from 'lucide-react';
+import { CalendarDays, Plus, Repeat, Sparkles, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useApp } from '../contexts/useApp';
@@ -23,6 +23,105 @@ const chip = (active) =>
       ? 'border-terracotta-500 bg-terracotta-500/10 text-stone-900 dark:text-white'
       : 'border-stone-200 text-stone-500 hover:text-stone-900 dark:border-white/10 dark:text-stone-400 dark:hover:text-white'
   }`;
+
+const CATEGORY_COLORS = ['#fb7185', '#f59e0b', '#60a5fa', '#34d399', '#a78bfa', '#22d3ee', '#e879f9', '#f97316', '#84cc16', '#bb5a29'];
+
+/** Cria uma categoria sem sair do formulário e já a seleciona */
+function NewCategoryChip({ type, onCreated }) {
+  const { categories, setCategories, persist } = useApp();
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [color, setColor] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const used = new Set(categories.map((category) => category.colorHex));
+  const colorHex = color || CATEGORY_COLORS.find((item) => !used.has(item)) || CATEGORY_COLORS[categories.length % CATEGORY_COLORS.length];
+
+  async function create() {
+    const trimmed = name.trim();
+    if (!trimmed || saving) return;
+    const existing = categories.find((category) => category.type === type && category.name.toLowerCase() === trimmed.toLowerCase());
+    if (existing) {
+      onCreated(existing);
+      setOpen(false);
+      setName('');
+      return;
+    }
+
+    const payload = { name: trimmed, type, colorHex };
+    setSaving(true);
+    try {
+      const created = await persist(() => api.createCategory(payload), () => ({ ...payload, id: Date.now() }));
+      setCategories((current) => [...current, created]);
+      onCreated(created);
+      toast.success(`Categoria "${trimmed}" criada!`);
+      setOpen(false);
+      setName('');
+      setColor(null);
+    } catch {
+      // o erro já foi mostrado
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-terracotta-300 px-3 py-1.5 text-sm font-semibold text-terracotta-600 transition hover:bg-terracotta-500/10 dark:border-terracotta-500/40 dark:text-terracotta-400"
+      >
+        <Plus size={14} />
+        Nova categoria
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex w-full flex-wrap items-center gap-2 rounded-2xl border border-terracotta-300 p-2 dark:border-terracotta-500/40">
+      <input
+        autoFocus
+        value={name}
+        onChange={(event) => setName(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            create();
+          }
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            setOpen(false);
+          }
+        }}
+        placeholder={`Nome da categoria de ${type.toLowerCase()}`}
+        className="min-w-0 flex-1 bg-transparent px-2 py-1 text-sm text-stone-900 outline-none placeholder:text-stone-400 dark:text-white"
+      />
+      <div className="flex gap-1">
+        {CATEGORY_COLORS.slice(0, 6).map((item) => (
+          <button
+            type="button"
+            key={item}
+            aria-label={`Cor ${item}`}
+            onClick={() => setColor(item)}
+            className={`h-5 w-5 rounded-full transition ${colorHex === item ? 'ring-2 ring-stone-900 ring-offset-2 ring-offset-white dark:ring-white dark:ring-offset-stone-950' : ''}`}
+            style={{ backgroundColor: item }}
+          />
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={create}
+        disabled={!name.trim() || saving}
+        className="rounded-xl bg-terracotta-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-terracotta-500 disabled:opacity-50"
+      >
+        {saving ? 'Criando...' : 'Criar'}
+      </button>
+      <button type="button" onClick={() => setOpen(false)} aria-label="Cancelar" className="rounded-lg p-1 text-stone-400 hover:text-stone-900 dark:hover:text-white">
+        <X size={16} />
+      </button>
+    </div>
+  );
+}
 
 export default function TransactionForm() {
   const { transactionForm, closeTransactionForm } = useApp();
@@ -163,10 +262,10 @@ function FormBody({ initial, onDone }) {
   const accent = type === 'Despesa' ? 'text-rose-500' : 'text-emerald-500';
   const today = todayKey();
 
-  if (wallets.length === 0 || categories.length === 0) {
+  if (wallets.length === 0) {
     return (
       <p className="rounded-2xl bg-terracotta-50/60 px-4 py-6 text-center text-sm text-stone-500 dark:bg-white/5 dark:text-stone-400">
-        Cadastre pelo menos uma conta e uma categoria em <b>Cadastros</b> para lançar transações.
+        Cadastre pelo menos uma conta em <b>Cadastros</b> para lançar transações.
       </p>
     );
   }
@@ -286,7 +385,13 @@ function FormBody({ initial, onDone }) {
               {category.name}
             </button>
           ))}
-          {typeCategories.length === 0 && <span className="text-sm text-stone-500">Nenhuma categoria de {type.toLowerCase()} cadastrada.</span>}
+          <NewCategoryChip
+            type={type}
+            onCreated={(category) => {
+              touched.current.category = true;
+              setCategoryId(String(category.id));
+            }}
+          />
         </div>
         {errors.categoryId && <p className="mt-1 text-xs text-rose-500">Escolha uma categoria</p>}
       </div>
