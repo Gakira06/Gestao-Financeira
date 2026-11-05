@@ -6,7 +6,7 @@ import CategoryBreakdown from '../components/CategoryBreakdown';
 import PageShell from '../components/PageShell';
 import StatCard from '../components/StatCard';
 import { useApp } from '../contexts/useApp';
-import { addDaysKey, byCategory, dateKey, formatMoney, inMonth, isOverdue, relativeDay, summarize, toISODate, todayKey } from '../utils/finance';
+import { addDaysKey, byCategory, dateKey, formatMoney, inMonth, isOverdue, isTransfer, relativeDay, summarize, toISODate, todayKey } from '../utils/finance';
 
 const panel = 'rounded-2xl border border-terracotta-100 bg-white/75 p-5 backdrop-blur-xl dark:border-white/5 dark:bg-white/3';
 const timeFormatter = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -44,7 +44,7 @@ export default function Dashboard() {
 
   const totalBalance = dashboard?.totalBalance ?? wallets.reduce((total, wallet) => total + Number(wallet.balance), 0);
   const monthTransactions = useMemo(() => transactions.filter((item) => inMonth(item, month, year)), [transactions, month, year]);
-  const monthSummary = summarize(monthTransactions);
+  const monthSummary = summarize(monthTransactions, categories);
   const payable = dashboard?.monthPendingPayable ?? monthSummary.payable;
   const receivable = dashboard?.monthPendingReceivable ?? monthSummary.receivable;
   const projected = totalBalance + receivable - payable;
@@ -223,7 +223,7 @@ export default function Dashboard() {
                         {relativeDay(dateKey(item.dueDate))} · {categoryById.get(Number(item.categoryId))?.name || '-'}
                       </span>
                     </div>
-                    <strong className={`shrink-0 tabular-nums ${item.type === 'Receita' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    <strong className={`shrink-0 tabular-nums ${isTransfer(item, categories) ? 'text-sky-500' : item.type === 'Receita' ? 'text-emerald-500' : 'text-rose-500'}`}>
                       {item.type === 'Receita' ? '+' : '-'} {formatMoney(item.amount)}
                     </strong>
                   </div>

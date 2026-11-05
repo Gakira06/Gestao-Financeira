@@ -76,10 +76,38 @@ export function normalize(text) {
     .trim();
 }
 
-/** Resumo de um conjunto de transações (efetivadas e previstas) */
-export function summarize(transactions) {
+// Transferência entre contas = duas transações (saída e entrada) com uma
+// categoria cujo nome começa com "Transferência". Elas mexem no saldo das
+// contas, mas não contam como receita nem despesa.
+export const TRANSFER = 'Transferência';
+
+export function isTransferCategory(category) {
+  return !!category && normalize(category.name).startsWith('transfer');
+}
+
+export function isTransfer(item, categories) {
+  return isTransferCategory(categories.find((category) => Number(category.id) === Number(item.categoryId)));
+}
+
+/** A outra perna da transferência: mesmo dia, valor e descrição, tipo oposto */
+export function findTransferPair(item, transactions, categories) {
+  const candidates = transactions.filter(
+    (other) =>
+      other.id !== item.id &&
+      other.type !== item.type &&
+      Number(other.amount) === Number(item.amount) &&
+      dateKey(other.dueDate) === dateKey(item.dueDate) &&
+      other.description === item.description &&
+      isTransfer(other, categories),
+  );
+  return candidates.sort((a, b) => Math.abs(a.id - item.id) - Math.abs(b.id - item.id))[0] || null;
+}
+
+/** Resumo de um conjunto de transações (efetivadas e previstas), sem transferências */
+export function summarize(transactions, categories = []) {
   return transactions.reduce(
     (acc, item) => {
+      if (categories.length && isTransfer(item, categories)) return acc;
       const amount = Number(item.amount) || 0;
       const income = item.type === 'Receita';
       const paid = item.status === 'Efetivado';
@@ -101,8 +129,9 @@ export function summarize(transactions) {
 
 export function byCategory(transactions, categories, type = 'Despesa') {
   const map = new Map();
+  const transfers = new Set(categories.filter(isTransferCategory).map((category) => Number(category.id)));
   for (const item of transactions) {
-    if (item.type !== type) continue;
+    if (item.type !== type || transfers.has(Number(item.categoryId))) continue;
     const id = Number(item.categoryId);
     map.set(id, (map.get(id) || 0) + Number(item.amount));
   }

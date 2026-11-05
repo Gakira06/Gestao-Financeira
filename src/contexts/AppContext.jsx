@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { api } from '../services/api';
 import { fallbackCategories, fallbackEvents, fallbackTasks, fallbackTransactions, fallbackWallets } from '../services/mockData';
+import { findTransferPair, isTransfer } from '../utils/finance';
 import { AppContext } from './appContext';
 
 function readTheme() {
@@ -131,19 +132,24 @@ export function AppProvider({ children }) {
 
   const markPaid = useCallback(
     async (transaction) => {
+      // Transferência: dá baixa na saída e na entrada juntas
+      const transfer = isTransfer(transaction, categories);
+      const pair = transfer ? findTransferPair(transaction, transactions, categories) : null;
+      const items = [transaction, ...(pair?.status === 'Pendente' ? [pair] : [])];
       try {
-        await persist(() => api.payTransaction(transaction.id), () => null);
+        for (const item of items) await persist(() => api.payTransaction(item.id), () => null);
       } catch {
         return false;
       }
+      const ids = new Set(items.map((item) => item.id));
       setTransactions((current) =>
-        current.map((item) => (item.id === transaction.id ? { ...item, status: 'Efetivado', paymentDate: new Date().toISOString() } : item)),
+        current.map((item) => (ids.has(item.id) ? { ...item, status: 'Efetivado', paymentDate: new Date().toISOString() } : item)),
       );
       refreshBaseData();
-      toast.success(transaction.type === 'Receita' ? 'Recebimento confirmado!' : 'Pagamento confirmado!');
+      toast.success(transfer ? 'Transferência confirmada!' : transaction.type === 'Receita' ? 'Recebimento confirmado!' : 'Pagamento confirmado!');
       return true;
     },
-    [persist, refreshBaseData],
+    [persist, refreshBaseData, categories, transactions],
   );
 
   const updateTask = useCallback(

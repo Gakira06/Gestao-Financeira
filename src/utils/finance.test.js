@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addMonthsKey, dateKey, quickParse, summarize } from "./finance.js";
+import { addMonthsKey, byCategory, dateKey, findTransferPair, quickParse, summarize } from "./finance.js";
 
 const wallets = [
   { id: 1, name: "Nubank" },
@@ -44,4 +44,18 @@ test("summarize separa pago e pendente", () => {
   assert.equal(result.incomePaid, 100);
   assert.equal(result.payable, 40);
   assert.equal(result.overdue, 1);
+});
+
+test("transferências não entram em receitas, despesas nem no gráfico", () => {
+  const cats = [...categories, { id: 7, name: "Transferência", type: "Despesa" }, { id: 8, name: "Transferência", type: "Receita" }];
+  const items = [
+    { id: 1, type: "Despesa", categoryId: 2, status: "Efetivado", amount: 50, dueDate: "2026-11-01", description: "Mercado" },
+    { id: 2, type: "Despesa", categoryId: 7, status: "Efetivado", amount: 300, dueDate: "2026-11-02", description: "Transferência: Nubank → Inter" },
+    { id: 3, type: "Receita", categoryId: 8, status: "Efetivado", amount: 300, dueDate: "2026-11-02", description: "Transferência: Nubank → Inter" },
+  ];
+  const result = summarize(items, cats);
+  assert.equal(result.expense, 50);
+  assert.equal(result.income, 0);
+  assert.deepEqual(byCategory(items, cats).map((item) => item.value), [50]);
+  assert.equal(findTransferPair(items[1], items, cats).id, 3);
 });

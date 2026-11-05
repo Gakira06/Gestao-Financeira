@@ -9,7 +9,7 @@ import StatCard from '../components/StatCard';
 import TransactionTable from '../components/TransactionTable';
 import { useApp } from '../contexts/useApp';
 import { api, buildTransactionQuery } from '../services/api';
-import { byCategory, dateKey, exportCSV, formatMoney, inMonth, normalize, summarize } from '../utils/finance';
+import { TRANSFER, byCategory, dateKey, exportCSV, findTransferPair, formatMoney, inMonth, isTransfer, normalize, summarize } from '../utils/finance';
 
 const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
 
@@ -68,7 +68,7 @@ export default function Financeiro() {
       .sort((a, b) => dateKey(b.dueDate).localeCompare(dateKey(a.dueDate)) || b.id - a.id);
   }, [transactions, filters]);
 
-  const totals = summarize(filteredTransactions);
+  const totals = summarize(filteredTransactions, categories);
   const categoryData = byCategory(filteredTransactions, categories);
 
   async function handlePay(transaction) {
@@ -78,15 +78,32 @@ export default function Financeiro() {
   }
 
   function handleDelete(transaction) {
+    // Transferência: apaga a saída e a entrada juntas
+    const pair = isTransfer(transaction, categories) ? findTransferPair(transaction, transactions, categories) : null;
+    const items = pair ? [transaction, pair] : [transaction];
+    const ids = new Set(items.map((item) => item.id));
     removeWithUndo({
       label: transaction.description,
-      remove: () => setTransactions((current) => current.filter((item) => item.id !== transaction.id)),
-      restore: () => setTransactions((current) => [transaction, ...current]),
-      request: () => api.deleteTransaction(transaction.id),
+      remove: () => setTransactions((current) => current.filter((item) => !ids.has(item.id))),
+      restore: () => setTransactions((current) => [...items, ...current]),
+      request: () => Promise.all(items.map((item) => api.deleteTransaction(item.id))),
     });
   }
 
   function handleDuplicate(transaction) {
+    if (isTransfer(transaction, categories)) {
+      const pair = findTransferPair(transaction, transactions, categories);
+      const out = transaction.type === 'Despesa' ? transaction : pair;
+      const into = transaction.type === 'Receita' ? transaction : pair;
+      openTransactionForm({
+        title: 'Duplicar transferência',
+        type: TRANSFER,
+        amount: transaction.amount,
+        walletId: out?.walletId,
+        toWalletId: into?.walletId,
+      });
+      return;
+    }
     openTransactionForm({
       title: 'Duplicar transação',
       description: transaction.description.replace(/\s*\(\d+\/\d+\)\s*$/, ''),

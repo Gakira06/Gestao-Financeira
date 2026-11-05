@@ -1,13 +1,18 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle2, Copy, PiggyBank, Trash2 } from 'lucide-react';
-import { dateKey, formatMoney, isOverdue, parseKey } from '../utils/finance';
+import { ArrowLeftRight, CheckCircle2, Copy, PiggyBank, Trash2 } from 'lucide-react';
+import { dateKey, formatMoney, isOverdue, isTransferCategory, parseKey } from '../utils/finance';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-function StatusBadge({ transaction, isPaying, compact = false }) {
+function amountTone(transaction, transfer) {
+  if (transfer) return 'text-sky-500';
+  return transaction.type === 'Receita' ? 'text-emerald-500' : 'text-rose-500';
+}
+
+function StatusBadge({ transaction, isPaying, transfer = false, compact = false }) {
   const overdue = isOverdue(transaction);
   const paid = transaction.status === 'Efetivado';
-  const label = paid ? (transaction.type === 'Receita' ? 'Recebido' : 'Pago') : overdue ? 'Atrasada' : 'Pendente';
+  const label = paid ? (transfer ? 'Feita' : transaction.type === 'Receita' ? 'Recebido' : 'Pago') : overdue ? 'Atrasada' : 'Pendente';
   const style = paid ? 'bg-emerald-500/10 text-emerald-500' : overdue ? 'bg-rose-500/10 text-rose-500' : 'bg-amber-500/10 text-amber-500';
 
   return (
@@ -82,6 +87,7 @@ export default function TransactionTable({ transactions, wallets, categories, on
             const wallet = walletById.get(Number(transaction.walletId));
             const category = categoryById.get(Number(transaction.categoryId));
             const isIncome = transaction.type === 'Receita';
+            const transfer = isTransferCategory(category);
 
             return (
               <motion.div
@@ -100,19 +106,19 @@ export default function TransactionTable({ transactions, wallets, categories, on
                     <p className="font-medium text-stone-950 dark:text-white">{transaction.description}</p>
                     <p className="mt-0.5 text-xs text-stone-500">{wallet?.name || '-'}</p>
                   </div>
-                  <span className={`shrink-0 font-semibold tabular-nums ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  <span className={`shrink-0 font-semibold tabular-nums ${amountTone(transaction, transfer)}`}>
                     {isIncome ? '+' : '-'} {formatMoney(transaction.amount)}
                   </span>
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-stone-500">
                   <span className="inline-flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: category?.colorHex || '#a8a29e' }} />
+                    {transfer ? <ArrowLeftRight size={12} className="text-sky-500" /> : <span className="h-2 w-2 rounded-full" style={{ backgroundColor: category?.colorHex || '#a8a29e' }} />}
                     {category?.name || '-'}
                   </span>
                   <span>•</span>
                   <span>{dateFormatter.format(parseKey(dateKey(transaction.dueDate)))}</span>
-                  <StatusBadge transaction={transaction} isPaying={payingId === transaction.id} compact />
+                  <StatusBadge transaction={transaction} isPaying={payingId === transaction.id} transfer={transfer} compact />
                 </div>
 
                 <div className="mt-3 flex justify-end gap-2">
@@ -143,6 +149,7 @@ export default function TransactionTable({ transactions, wallets, categories, on
                 const wallet = walletById.get(Number(transaction.walletId));
                 const category = categoryById.get(Number(transaction.categoryId));
                 const isIncome = transaction.type === 'Receita';
+                const transfer = isTransferCategory(category);
 
                 return (
                   <motion.tr
@@ -158,15 +165,15 @@ export default function TransactionTable({ transactions, wallets, categories, on
                     <td className="px-4 py-4">{wallet?.name || '-'}</td>
                     <td className="px-4 py-4">
                       <span className="inline-flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: category?.colorHex || '#a8a29e' }} />
+                        {transfer ? <ArrowLeftRight size={14} className="text-sky-500" /> : <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: category?.colorHex || '#a8a29e' }} />}
                         {category?.name || '-'}
                       </span>
                     </td>
                     <td className="px-4 py-4 tabular-nums">{dateFormatter.format(parseKey(dateKey(transaction.dueDate)))}</td>
                     <td className="px-4 py-4">
-                      <StatusBadge transaction={transaction} isPaying={payingId === transaction.id} />
+                      <StatusBadge transaction={transaction} isPaying={payingId === transaction.id} transfer={transfer} />
                     </td>
-                    <td className={`px-4 py-4 text-right font-semibold tabular-nums ${isIncome ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    <td className={`px-4 py-4 text-right font-semibold tabular-nums ${amountTone(transaction, transfer)}`}>
                       {isIncome ? '+' : '-'} {formatMoney(transaction.amount)}
                     </td>
                     <td className="print:hidden px-4 py-4">

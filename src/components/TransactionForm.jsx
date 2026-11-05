@@ -1,14 +1,16 @@
-import { CalendarDays, Plus, Repeat, Sparkles, X } from 'lucide-react';
+import { ArrowDown, ArrowLeftRight, CalendarDays, Plus, Repeat, Sparkles, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { useApp } from '../contexts/useApp';
 import { api } from '../services/api';
 import {
+  TRANSFER,
   addDaysKey,
   addMonthsKey,
   dateKey,
   descriptionSuggestions,
   formatMoney,
+  isTransferCategory,
   quickParse,
   suggestFromHistory,
   todayKey,
@@ -23,6 +25,8 @@ const chip = (active) =>
       ? 'border-terracotta-500 bg-terracotta-500/10 text-stone-900 dark:text-white'
       : 'border-stone-200 text-stone-500 hover:text-stone-900 dark:border-white/10 dark:text-stone-400 dark:hover:text-white'
   }`;
+
+const TYPE_TONE = { Despesa: 'text-rose-500', Receita: 'text-emerald-500', [TRANSFER]: 'text-sky-500' };
 
 const CATEGORY_COLORS = ['#fb7185', '#f59e0b', '#60a5fa', '#34d399', '#a78bfa', '#22d3ee', '#e879f9', '#f97316', '#84cc16', '#bb5a29'];
 
@@ -133,13 +137,14 @@ export default function TransactionForm() {
 }
 
 function FormBody({ initial, onDone }) {
-  const { wallets, categories, transactions, setTransactions, persist, refreshBaseData } = useApp();
+  const { wallets, categories, setCategories, transactions, setTransactions, persist, refreshBaseData } = useApp();
   const lastWallet = transactions[0]?.walletId;
 
   const [type, setType] = useState(initial?.type || 'Despesa');
   const [cents, setCents] = useState(initial?.amount ? Math.round(Number(initial.amount) * 100) : 0);
   const [description, setDescription] = useState(initial?.description || '');
   const [walletId, setWalletId] = useState(String(initial?.walletId ?? lastWallet ?? wallets[0]?.id ?? ''));
+  const [toWalletId, setToWalletId] = useState(initial?.toWalletId ? String(initial.toWalletId) : '');
   const [categoryId, setCategoryId] = useState(initial?.categoryId ? String(initial.categoryId) : '');
   const [dueDate, setDueDate] = useState(initial?.dueDate ? dateKey(initial.dueDate) : todayKey());
   const [status, setStatus] = useState(initial?.status || null); // null = automático pela data
@@ -153,6 +158,7 @@ function FormBody({ initial, onDone }) {
   const amountRef = useRef(null);
 
   const amount = cents / 100;
+  const transfer = type === TRANSFER;
   // Hoje ou antes: já foi pago. Depois: fica pendente até dar baixa.
   const effectiveStatus = status || (dueDate <= todayKey() ? 'Efetivado' : 'Pendente');
 
@@ -160,7 +166,7 @@ function FormBody({ initial, onDone }) {
     const usage = new Map();
     for (const item of transactions) usage.set(Number(item.categoryId), (usage.get(Number(item.categoryId)) || 0) + 1);
     return categories
-      .filter((category) => category.type === type)
+      .filter((category) => category.type === type && !isTransferCategory(category))
       .sort((a, b) => (usage.get(Number(b.id)) || 0) - (usage.get(Number(a.id)) || 0));
   }, [categories, transactions, type]);
 
@@ -170,7 +176,7 @@ function FormBody({ initial, onDone }) {
   );
 
   function applyHistory(item) {
-    if (!item) return;
+    if (!item || transfer || isTransferCategory(categories.find((category) => Number(category.id) === Number(item.categoryId)))) return;
     setType(item.type);
     if (!touched.current.category) setCategoryId(String(item.categoryId));
     if (!touched.current.wallet) setWalletId(String(item.walletId));
@@ -187,7 +193,66 @@ function FormBody({ initial, onDone }) {
     setDueDate(parsed.dueDate || todayKey());
   }
 
+  // Usa (ou cria) a categoria "Transferência" do tipo pedido
+  async function transferCategory(kind) {
+    const existing = categories.find((category) => category.type === kind && isTransferCategory(category));
+    if (existing) return existing;
+    const payload = { name: TRANSFER, type: kind, colorHex: '#38bdf8' };
+    const created = await persist(() => api.createCategory(payload), () => ({ ...payload, id: Date.now() + (kind === 'Receita' ? 1 : 0) }));
+    setCategories((current) => [...current, created]);
+    return created;
+  }
+
+  async function submitTransfer(again) {
+    const nextErrors = {
+      amount: cents <= 0,
+      walletId: !walletId,
+      toWalletId: !toWalletId || toWalletId === walletId,
+    };
+    setErrors(nextErrors);
+    if (Object.values(nextErrors).some(Boolean)) return;
+
+    const from = wallets.find((wallet) => String(wallet.id) === walletId);
+    const to = wallets.find((wallet) => String(wallet.id) === toWalletId);
+    const label = description.trim() || `${TRANSFER}: ${from?.name} → ${to?.name}`;
+    const months = repeat === 'mensal' ? times : 1;
+
+    setSaving(true);
+    try {
+      const [outCategory, inCategory] = [await transferCategory('Despesa'), await transferCategory('Receita')];
+      const created = [];
+      for (let index = 0; index < months; index += 1) {
+        const date = addMonthsKey(dueDate, index);
+        const itemStatus = index === 0 ? effectiveStatus : date <= todayKey() ? 'Efetivado' : 'Pendente';
+        const legs = [
+          { type: 'Despesa', walletId: Number(walletId), categoryId: Number(outCategory.id) },
+          { type: 'Receita', walletId: Number(toWalletId), categoryId: Number(inCategory.id) },
+        ];
+        for (const leg of legs) {
+          const item = { ...leg, description: label, amount, dueDate: date, status: itemStatus };
+          created.push(
+            await persist(
+              () => api.createTransaction(item),
+              () => ({ ...item, id: Date.now() + created.length, paymentDate: item.status === 'Efetivado' ? new Date().toISOString() : null }),
+            ),
+          );
+        }
+      }
+      setTransactions((current) => [...created, ...current]);
+      refreshBaseData();
+      toast.success(months > 1 ? `${months} transferências agendadas!` : `Transferência de ${formatMoney(amount)} registrada!`);
+    } catch {
+      setSaving(false);
+      return;
+    }
+    finish(again);
+  }
+
   async function submit(again = false) {
+    if (transfer) {
+      submitTransfer(again);
+      return;
+    }
     const nextErrors = {
       amount: cents <= 0,
       description: !description.trim(),
@@ -245,7 +310,10 @@ function FormBody({ initial, onDone }) {
       setSaving(false);
       return;
     }
+    finish(again);
+  }
 
+  function finish(again) {
     if (again) {
       setCents(0);
       setDescription('');
@@ -259,7 +327,7 @@ function FormBody({ initial, onDone }) {
     onDone();
   }
 
-  const accent = type === 'Despesa' ? 'text-rose-500' : 'text-emerald-500';
+  const accent = TYPE_TONE[type];
   const today = todayKey();
 
   if (wallets.length === 0) {
@@ -288,21 +356,22 @@ function FormBody({ initial, onDone }) {
         />
       </label>
 
-      <div className="grid grid-cols-2 rounded-2xl border border-stone-200 bg-stone-50 p-1 dark:border-white/10 dark:bg-white/5">
-        {['Despesa', 'Receita'].map((option) => (
+      <div className="grid grid-cols-3 rounded-2xl border border-stone-200 bg-stone-50 p-1 dark:border-white/10 dark:bg-white/5">
+        {['Despesa', 'Receita', TRANSFER].map((option) => (
           <button
             type="button"
             key={option}
             onClick={() => {
               setType(option);
+              setErrors({});
+              if (option === TRANSFER && repeat === 'parcelada') setRepeat('unica');
               if (categories.find((category) => String(category.id) === categoryId)?.type !== option) setCategoryId('');
             }}
-            className={`rounded-xl py-2 text-sm font-semibold transition ${
-              type === option
-                ? `bg-white shadow-sm dark:bg-white/10 ${option === 'Despesa' ? 'text-rose-500' : 'text-emerald-500'}`
-                : 'text-stone-500 dark:text-stone-400'
+            className={`inline-flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold transition ${
+              type === option ? `bg-white shadow-sm dark:bg-white/10 ${TYPE_TONE[option]}` : 'text-stone-500 dark:text-stone-400'
             }`}
           >
+            {option === TRANSFER && <ArrowLeftRight size={14} />}
             {option}
           </button>
         ))}
@@ -343,9 +412,9 @@ function FormBody({ initial, onDone }) {
             applyHistory(suggestFromHistory(description, transactions));
           }}
           className={`input-control ${errors.description ? '!border-rose-500' : ''}`}
-          placeholder="Descrição (ex.: Aluguel, salário, mercado)"
+          placeholder={transfer ? 'Descrição (opcional, ex.: Guardar na reserva)' : 'Descrição (ex.: Aluguel, salário, mercado)'}
         />
-        {suggestions.length > 0 && (
+        {!transfer && suggestions.length > 0 && (
           <div className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl dark:border-white/10 dark:bg-[#1c140f]">
             {suggestions.map((item) => (
               <button
@@ -368,6 +437,41 @@ function FormBody({ initial, onDone }) {
         )}
       </div>
 
+      {transfer ? (
+        <div className="grid gap-2">
+          <div>
+            <span className={caption}>Sai de</span>
+            <div className="flex flex-wrap gap-2">
+              {wallets.map((wallet) => (
+                <button type="button" key={wallet.id} onClick={() => setWalletId(String(wallet.id))} className={chip(walletId === String(wallet.id))}>
+                  {wallet.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <ArrowDown size={16} className="mx-auto text-sky-500" />
+          <div>
+            <span className={caption}>Entra em</span>
+            <div className="flex flex-wrap gap-2">
+              {wallets.map((wallet) => (
+                <button
+                  type="button"
+                  key={wallet.id}
+                  disabled={String(wallet.id) === walletId}
+                  onClick={() => setToWalletId(String(wallet.id))}
+                  className={`${chip(toWalletId === String(wallet.id))} disabled:cursor-not-allowed disabled:opacity-30`}
+                >
+                  {wallet.name}
+                </button>
+              ))}
+            </div>
+            {errors.toWalletId && <p className="mt-1 text-xs text-rose-500">Escolha a conta de destino (diferente da de origem)</p>}
+            {wallets.length < 2 && <p className="mt-1 text-xs text-stone-500">Cadastre outra conta em Cadastros para transferir entre elas.</p>}
+          </div>
+          <p className="text-xs text-stone-500">Não conta como receita nem despesa, só move o dinheiro entre as contas.</p>
+        </div>
+      ) : (
+      <>
       <div>
         <span className={caption}>Categoria</span>
         <div className="flex flex-wrap gap-2">
@@ -415,6 +519,8 @@ function FormBody({ initial, onDone }) {
         </div>
         {errors.walletId && <p className="mt-1 text-xs text-rose-500">Escolha uma conta</p>}
       </div>
+      </>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
@@ -439,7 +545,7 @@ function FormBody({ initial, onDone }) {
           <span className={caption}>Situação</span>
           <div className="grid grid-cols-2 rounded-2xl border border-stone-200 bg-stone-50 p-1 dark:border-white/10 dark:bg-white/5">
             {[
-              ['Efetivado', type === 'Despesa' ? 'Já paguei' : 'Já recebi'],
+              ['Efetivado', transfer ? 'Já feita' : type === 'Despesa' ? 'Já paguei' : 'Já recebi'],
               ['Pendente', 'Pendente'],
             ].map(([value, label]) => (
               <button
@@ -461,7 +567,7 @@ function FormBody({ initial, onDone }) {
           <div className="flex items-center gap-2">
             <select value={repeat} onChange={(event) => setRepeat(event.target.value)} className="input-control">
               <option value="unica">Não repete</option>
-              <option value="parcelada">Parcelado</option>
+              {!transfer && <option value="parcelada">Parcelado</option>}
               <option value="mensal">Todo mês</option>
             </select>
             {repeat !== 'unica' && (
@@ -492,7 +598,7 @@ function FormBody({ initial, onDone }) {
           disabled={saving}
           className="flex-1 rounded-2xl bg-terracotta-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-terracotta-600/20 transition hover:bg-terracotta-500 disabled:opacity-60"
         >
-          {saving ? 'Salvando...' : type === 'Despesa' ? 'Salvar despesa' : 'Salvar receita'}
+          {saving ? 'Salvando...' : transfer ? 'Salvar transferência' : type === 'Despesa' ? 'Salvar despesa' : 'Salvar receita'}
         </button>
       </div>
     </form>
