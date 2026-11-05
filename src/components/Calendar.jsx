@@ -1,8 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+const POPUP_WIDTH = 288;
+const POPUP_HEIGHT = 330;
+
 const MONTHS = [
   'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
@@ -54,7 +58,9 @@ export default function Calendar({ value, onChange, placeholder = 'Selecionar da
   const selected = parseISODate(value);
   const [open, setOpen] = useState(false);
   const [viewDate, setViewDate] = useState(selected || new Date());
+  const [position, setPosition] = useState(null);
   const containerRef = useRef(null);
+  const popupRef = useRef(null);
 
   useEffect(() => {
     if (selected) setViewDate(selected);
@@ -63,7 +69,7 @@ export default function Calendar({ value, onChange, placeholder = 'Selecionar da
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      if (!containerRef.current?.contains(event.target) && !popupRef.current?.contains(event.target)) {
         setOpen(false);
       }
     }
@@ -80,6 +86,34 @@ export default function Calendar({ value, onChange, placeholder = 'Selecionar da
     };
   }, []);
 
+  // O calendário é renderizado no <body> com posição fixa para não ser
+  // cortado nem ficar atrás de cards com backdrop-blur/overflow.
+  useLayoutEffect(() => {
+    if (!open) return undefined;
+
+    function place() {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const width = Math.min(POPUP_WIDTH, window.innerWidth - 16);
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+      const fitsBelow = rect.bottom + 8 + POPUP_HEIGHT <= window.innerHeight || rect.top < POPUP_HEIGHT + 8;
+      setPosition({ left, width, top: fitsBelow ? rect.bottom + 8 : rect.top - POPUP_HEIGHT - 8 });
+    }
+
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open]);
+
+  function toggle() {
+    if (!open) setViewDate(selected || new Date());
+    setOpen((current) => !current);
+  }
+
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
   const cells = buildMonthCells(year, month);
@@ -94,7 +128,7 @@ export default function Calendar({ value, onChange, placeholder = 'Selecionar da
     <div className={`relative ${className}`} ref={containerRef}>
       <button
         type="button"
-        onClick={() => setOpen((current) => !current)}
+        onClick={toggle}
         className="input-control flex w-full items-center justify-between gap-2 text-left"
       >
         <span className={selected ? '' : 'text-stone-400'}>
@@ -103,14 +137,17 @@ export default function Calendar({ value, onChange, placeholder = 'Selecionar da
         <CalendarDays size={16} className="shrink-0 text-terracotta-500" />
       </button>
 
+      {createPortal(
       <AnimatePresence>
-        {open && (
+        {open && position && (
           <motion.div
+            ref={popupRef}
+            style={{ position: 'fixed', top: position.top, left: position.left, width: position.width }}
             initial={{ opacity: 0, y: -6, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 z-30 mt-2 w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-terracotta-100 bg-white p-3 shadow-2xl dark:border-white/10 dark:bg-[#1c140f]"
+            className="z-[60] rounded-2xl border border-terracotta-100 bg-white p-3 shadow-2xl dark:border-white/10 dark:bg-[#1c140f]"
           >
             <div className="mb-2 flex items-center justify-between">
               <button
@@ -182,7 +219,9 @@ export default function Calendar({ value, onChange, placeholder = 'Selecionar da
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>,
+      document.body,
+      )}
     </div>
   );
 }
